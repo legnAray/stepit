@@ -37,11 +37,15 @@ HeightmapSubscriber2::HeightmapSubscriber2(const PolicySpec &policy_spec, const 
   yml::setIf(config_, "elevation_zero_mean", elevation_zero_mean_);
   yml::setIf(config_, "uncertainty_squared", uncertainty_squared_);
   yml::setIf(config_, "uncertainty_scaling", uncertainty_scaling_);
-  std::string elevation_interp_method{"linear"}, uncertainty_interp_method{"linear"};
+  std::string elevation_interp_method, uncertainty_interp_method;
   yml::setIf(config_, "elevation_interpolation_method", elevation_interp_method);
   yml::setIf(config_, "uncertainty_interpolation_method", uncertainty_interp_method);
-  elevation_interp_method_   = parseInterpolationMethod(elevation_interp_method);
-  uncertainty_interp_method_ = parseInterpolationMethod(uncertainty_interp_method);
+  if (not elevation_interp_method.empty()) {
+    elevation_interp_method_ = parseInterpolationMethod(elevation_interp_method);
+  }
+  if (not uncertainty_interp_method.empty()) {
+    uncertainty_interp_method_ = parseInterpolationMethod(uncertainty_interp_method);
+  }
 
   map_sub_ = getNode()->create_subscription<grid_map_msgs::msg::GridMap>(
       map_topic, map_qos, std::bind(&HeightmapSubscriber2::gridMapCallback, this, std::placeholders::_1));
@@ -83,6 +87,7 @@ HeightmapSubscriber2::HeightmapSubscriber2(const PolicySpec &policy_spec, const 
     using sensor_msgs::msg::PointField;
     modifier.setPointCloud2Fields(4, "x", 1, PointField::FLOAT32, "y", 1, PointField::FLOAT32, "z", 1,
                                   PointField::FLOAT32, "rgb", 1, PointField::UINT32);
+    modifier.resize(sample_coords_.size());
   }
   global_sample_coords_.resize(sample_coords_.size());
 }

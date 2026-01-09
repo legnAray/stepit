@@ -38,9 +38,9 @@ localization_subscriber:                     # similar settings for localization
 # Grid map options
 elevation_layer: "elevation"                 # [Optional] String, the layer name for elevation
 uncertainty_layer: "uncertainty_range"       # [Optional] String, the layer name for uncertainty; empty string to disable
-elevation_interpolation_method: "linear"     # Literal["nearest", "linear", "cubic_convolution", "cubic"],
+elevation_interpolation_method: "nearest"    # Literal["nearest", "linear", "cubic_convolution", "cubic"],
                                              #   the interpolation method for elevation layer
-uncertainty_interpolation_method: "linear"   # Literal["nearest", "linear", "cubic_convolution", "cubic"],
+uncertainty_interpolation_method: "nearest"  # Literal["nearest", "linear", "cubic_convolution", "cubic"],
                                              #   the interpolation method for uncertainty layer
 
 elevation_zero_mean: true                    # [Optional] Bool, subtract mean elevation from samples

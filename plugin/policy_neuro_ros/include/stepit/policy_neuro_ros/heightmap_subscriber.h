@@ -38,8 +38,8 @@ class HeightmapSubscriber : public DummyHeightmapSource {
   bool elevation_zero_mean_{true};
   bool uncertainty_squared_{false};
   float uncertainty_scaling_{0.25F};
-  InterpolationMethods elevation_interp_method_{InterpolationMethods::INTER_LINEAR};
-  InterpolationMethods uncertainty_interp_method_{InterpolationMethods::INTER_LINEAR};
+  InterpolationMethods elevation_interp_method_{InterpolationMethods::INTER_NEAREST};
+  InterpolationMethods uncertainty_interp_method_{InterpolationMethods::INTER_NEAREST};
   bool publish_samples_{false};
   bool default_subscriber_enabled_{false};
   std::mutex msg_mtx_;

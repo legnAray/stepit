@@ -31,11 +31,16 @@ HeightmapSubscriber::HeightmapSubscriber(const PolicySpec &policy_spec, const st
 
   yml::setIf(config_, "elevation_layer", elevation_layer_);
   yml::setIf(config_, "uncertainty_layer", uncertainty_layer_);
-  std::string elevation_interp_method{"linear"}, uncertainty_interp_method{"linear"};
+  std::string elevation_interp_method, uncertainty_interp_method;
   yml::setIf(config_, "elevation_interpolation_method", elevation_interp_method);
   yml::setIf(config_, "uncertainty_interpolation_method", uncertainty_interp_method);
-  elevation_interp_method_   = parseInterpolationMethod(elevation_interp_method);
-  uncertainty_interp_method_ = parseInterpolationMethod(uncertainty_interp_method);
+  if (not elevation_interp_method.empty()) {
+    elevation_interp_method_ = parseInterpolationMethod(elevation_interp_method);
+  }
+  if (not uncertainty_interp_method.empty()) {
+    uncertainty_interp_method_ = parseInterpolationMethod(uncertainty_interp_method);
+  }
+
   if (uncertainty_layer_ == "variance") {  // Default values for variance layer
     uncertainty_squared_ = true;
     uncertainty_scaling_ = 1.0;
@@ -59,6 +64,7 @@ HeightmapSubscriber::HeightmapSubscriber(const PolicySpec &policy_spec, const st
     sensor_msgs::PointCloud2Modifier modifier(sample_msg_);
     modifier.setPointCloud2Fields(4, "x", 1, sensor_msgs::PointField::FLOAT32, "y", 1, sensor_msgs::PointField::FLOAT32,
                                   "z", 1, sensor_msgs::PointField::FLOAT32, "rgb", 1, sensor_msgs::PointField::UINT32);
+    modifier.resize(sample_coords_.size());
   }
   global_sample_coords_.resize(sample_coords_.size());
 }
