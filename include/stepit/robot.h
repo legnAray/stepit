@@ -32,7 +32,7 @@ struct LowState {
 
   struct IMU {
     /* Quaternion representation of orientation in (w,x,y,z) format */
-    std::array<float, 4> quaternion{};
+    std::array<float, 4> quaternion{1.0, 0.0, 0.0, 0.0};
     /* Angular velocity (unit: rad/s) */
     std::array<float, 3> gyroscope{};
     /* Linear acceleration (unit: m/(s^2)) */

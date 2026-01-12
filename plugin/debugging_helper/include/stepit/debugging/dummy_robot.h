@@ -6,8 +6,8 @@
 namespace stepit {
 class DummyRobotApi final : public RobotApi {
  public:
-  DummyRobotApi() : RobotApi(kRobotName), low_state_(getDoF(), getNumLegs()) {}
-  void getControl(bool enable) override;
+  DummyRobotApi();
+  void getControl(bool enable) override {}
   void setSend(LowCmd &cmd) override;
   void getRecv(LowState &state) override;
   void send() override {}
@@ -20,6 +20,7 @@ class DummyRobotApi final : public RobotApi {
 
  private:
   LowState low_state_;
+  TimePoint start_time_;
 };
 }  // namespace stepit
 

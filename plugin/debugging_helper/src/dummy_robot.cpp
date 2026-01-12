@@ -1,7 +1,7 @@
 #include <stepit/debugging/dummy_robot.h>
 
 namespace stepit {
-void DummyRobotApi::getControl(bool enable) { low_state_.tick = 1; }
+DummyRobotApi::DummyRobotApi() : RobotApi(kRobotName), low_state_(getDoF(), getNumLegs()), start_time_(Clock::now()) {}
 
 void DummyRobotApi::setSend(LowCmd &cmd) {
   for (std::size_t i{}; i < getDoF(); ++i) {
@@ -11,7 +11,10 @@ void DummyRobotApi::setSend(LowCmd &cmd) {
   }
 }
 
-void DummyRobotApi::getRecv(LowState &state) { state = low_state_; }
+void DummyRobotApi::getRecv(LowState &state) {
+  low_state_.tick = static_cast<uint32_t>(duration_cast<MSec>(Clock::now() - start_time_).count());
+  state           = low_state_;
+}
 
 STEPIT_REGISTER_ROBOTAPI(dummy, kMinPriority, [] { return std::make_unique<DummyRobotApi>(); });
 }  // namespace stepit
