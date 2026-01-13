@@ -60,8 +60,6 @@ class NnrtApi : public Interface<NnrtApi, const std::string & /* path */, const 
   std::vector<std::pair<std::string, std::string>> recur_params_;
   std::vector<std::pair<std::size_t, std::size_t>> recur_param_indices_;
 };
-
-extern template class RegistrySingleton<NnrtApi, const std::string &, const YAML::Node &>;
 }  // namespace stepit
 
 #define STEPIT_REGISTER_NNRTAPI(name, priority, factory) \

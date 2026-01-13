@@ -50,7 +50,6 @@ stepit_add_library(stepit_core SHARED
     src/stepit/logging.cpp
     src/stepit/plugin.cpp
     src/stepit/publisher.cpp
-    src/stepit/registry.cpp
     src/stepit/robot.cpp
     src/stepit/spin.cpp
 )

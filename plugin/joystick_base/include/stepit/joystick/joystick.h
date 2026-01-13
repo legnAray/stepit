@@ -54,7 +54,6 @@ class JoystickControl::Registration {
 
 using joystick::Joystick;
 using joystick::JoystickControl;
-extern template class RegistrySingleton<Joystick>;
 }  // namespace stepit
 
 #define STEPIT_REGISTER_JOYSTICK(name, priority, factory) \

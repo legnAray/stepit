@@ -77,8 +77,6 @@ class ControlInput : public Interface<ControlInput> {
   std::deque<ControlRequest> requests_;
 };
 
-extern template class RegistrySingleton<ControlInput>;
-
 class MultipleControlInputs {
  public:
   explicit MultipleControlInputs(const std::vector<std::string> &input_names);

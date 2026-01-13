@@ -48,8 +48,6 @@ class Policy : public Interface<Policy, const RobotSpec & /* robot_spec */, cons
  protected:
   PolicySpec spec_;
 };
-
-extern template class RegistrySingleton<Policy, const RobotSpec &, const std::string &>;
 }  // namespace stepit
 
 #define STEPIT_REGISTER_POLICY(name, priority, factory) \

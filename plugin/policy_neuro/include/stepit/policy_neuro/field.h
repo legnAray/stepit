@@ -83,8 +83,6 @@ void parseFieldIds(const YAML::Node &node, FieldIdVec &result);
 void assembleFields(const FieldMap &field_map, const FieldIdVec &field_ids, rArrXf result);
 void splitFields(cArrXf data, const FieldIdVec &field_ids, FieldMap &result);
 }  // namespace neuro_policy
-
-extern template class RegistrySingleton<neuro_policy::FieldSource, const PolicySpec &, const std::string &>;
 }  // namespace stepit
 
 #define STEPIT_REGISTER_FIELD_SOURCE(name, priority, factory) \

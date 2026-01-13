@@ -1,8 +1,6 @@
 #include <stepit/policy_neuro/field.h>
 
 namespace stepit {
-template class RegistrySingleton<neuro_policy::FieldSource, const PolicySpec &, const std::string &>;
-
 namespace neuro_policy {
 FieldId FieldSource::registerRequirement(const std::string &field_name) {
   return registerRequirement(registerField(field_name, 0));

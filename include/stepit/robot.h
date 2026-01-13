@@ -131,8 +131,6 @@ class RobotApi : public Interface<RobotApi> {
   YAML::Node config_;
   RobotSpec spec_;
 };
-
-extern template class RegistrySingleton<RobotApi>;
 }  // namespace stepit
 
 #define STEPIT_REGISTER_ROBOTAPI(name, priority, factory) \

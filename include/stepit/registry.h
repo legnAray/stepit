@@ -216,38 +216,29 @@ auto Registry<T, Args...>::Registration::operator=(Registration &&other) noexcep
   return *this;
 }
 
-template <typename T, typename... Args>
-class RegistrySingleton {
- public:
-  using RegistryType = Registry<T, Args...>;
-  using Factory      = typename RegistryType::Factory;
-  class Registration : public RegistryType::Registration {
-   public:
-    Registration(const std::string &name, int priority, Factory factory)
-        : RegistryType::Registration(&instance(), name, priority, std::move(factory)) {}
-  };
-
-  static RegistryType &instance() {
-    static RegistryType registry;
-    return registry;
-  }
-
-  static std::unique_ptr<T> make(std::string name, Args... args) {
-    return instance().make(std::move(name), std::forward<Args>(args)...);
-  }
-};
-
 template <typename Derived, typename... Args>
 class Interface {
  public:
   virtual ~Interface() = default;
   using Ptr            = std::unique_ptr<Derived>;
-  using Registry       = RegistrySingleton<Derived, Args...>;
+  using Registry       = ::stepit::Registry<Derived, Args...>;
   using Factory        = typename Registry::Factory;
-  using Registration   = typename Registry::Registration;
-  static Ptr make(std::string name, Args... args) {
-    return Registry::make(std::move(name), std::forward<Args>(args)...);
+
+  static Registry &registry() {
+    static Registry instance;
+    return instance;
   }
+
+  class Registration : public Registry::Registration {
+   public:
+    Registration(const std::string &name, int priority, Factory factory)
+        : Registry::Registration(&registry(), name, priority, std::move(factory)) {}
+  };
+
+  static Ptr make(std::string name, Args... args) {
+    return registry().make(std::move(name), std::forward<Args>(args)...);
+  }
+
   template <typename T>
   static Ptr makeDerived(Args... args) {
     return std::make_unique<T>(std::forward<Args>(args)...);

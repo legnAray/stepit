@@ -25,8 +25,6 @@ class Publisher: public Interface<Publisher> {
   std::map<std::string, std::string> named_status_;
 };
 
-extern template class RegistrySingleton<Publisher>;
-
 namespace publisher {
 // Helper accessors
 

@@ -88,8 +88,6 @@ class HybridActuator : public Actuator {
   ArrXf joint_command_;
 };
 }  // namespace neuro_policy
-
-extern template class RegistrySingleton<neuro_policy::Actuator, const PolicySpec &, const std::string &>;
 }  // namespace stepit
 
 #define STEPIT_REGISTER_ACTUATOR(name, priority, factory) \

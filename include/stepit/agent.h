@@ -16,7 +16,7 @@ class Agent final : public Communication {
   explicit Agent(const std::string &robot_type, const std::vector<std::string> &ctrl_type);
   ~Agent() override { stopAgentThread(); }
 
-  void addPolicy(Policy::Ptr policy);
+  void addPolicy(const std::string &policy_type, const std::string &home_dir);
   int stepit();
 
   enum class State : std::uint8_t {

@@ -95,16 +95,16 @@ int main(int argc, char *argv[]) {
   if (arg_map.find("policy") != arg_map.end()) {
     auto policies = arg_map["policy"].as<std::vector<std::string>>();
     for (const auto &policy : policies) {
+      std::string policy_type, home_dir;
       auto sep = policy.find('@');
-      std::string type_str, home_dir;
       if (sep != std::string::npos) {
-        type_str = policy.substr(0, sep);
+        policy_type = policy.substr(0, sep);
         home_dir = policy.substr(sep + 1);
       } else {
-        type_str = "";
+        policy_type = "";
         home_dir = policy;
       }
-      agent->addPolicy(stepit::Policy::make(type_str, agent->spec(), home_dir));
+      agent->addPolicy(policy_type, home_dir);
     }
   }
 

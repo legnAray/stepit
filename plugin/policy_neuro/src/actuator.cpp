@@ -1,8 +1,6 @@
 #include <stepit/policy_neuro/actuator.h>
 
 namespace stepit {
-template class RegistrySingleton<neuro_policy::Actuator, const PolicySpec &, const std::string &>;
-
 namespace neuro_policy {
 PositionActuator::PositionActuator(const PolicySpec &policy_spec, const std::string &home_dir) {
   YAML::Node policy_config = yml::loadFile(home_dir + "/policy.yml");

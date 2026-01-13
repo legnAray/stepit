@@ -114,5 +114,5 @@ void NnrtApi::printInfo() const {
   std::cout << ss.str() << std::endl;
 }
 
-template class RegistrySingleton<NnrtApi, const std::string &, const YAML::Node &>;
+template class NnrtApi::Interface;
 }  // namespace stepit
