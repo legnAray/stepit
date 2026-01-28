@@ -45,16 +45,16 @@ bool CmdVelSource::reset() {
   cmd_vel_.setZero();
   cmd_stall_ = true;
 
-  joystick_rules_.emplace_back([this](const joystick::State &state) -> std::string {
+  joystick_rules_.emplace_back([this](const joystick::State &js) -> std::string {
     if (not joystick_enabled_) return "";
-    return fmt::format("Policy/CmdVel/SetTurboRatio:{}", (state.rt() + 1.0) / 2.0);
+    return fmt::format("Policy/CmdVel/SetTurboRatio:{}", (js.rt() + 1.0) / 2.0);
   });
-  joystick_rules_.emplace_back([this](const joystick::State &state) -> std::string {
+  joystick_rules_.emplace_back([this](const joystick::State &js) -> std::string {
     if (not joystick_enabled_) return "";
-    return fmt::format("Policy/CmdVel/SetVelocityUnscaled:{},{},{}", -state.las_y(), -state.las_x(), -state.ras_x());
+    return fmt::format("Policy/CmdVel/SetVelocityUnscaled:{},{},{}", -js.las_y(), -js.las_x(), -js.ras_x());
   });
-  joystick_rules_.emplace_back([this](const joystick::State &state) -> std::string {
-    return state.Start().on_press ? "Policy/CmdVel/CycleMode" : "";
+  joystick_rules_.emplace_back([](const joystick::State &js) -> std::string {
+    return js.Start().on_press ? "Policy/CmdVel/CycleMode" : "";
   });
   return true;
 }

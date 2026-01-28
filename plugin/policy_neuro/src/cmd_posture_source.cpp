@@ -23,10 +23,10 @@ CmdRollSource::CmdRollSource(const PolicySpec &policy_spec, const std::string &h
 
 bool CmdRollSource::reset() {
   cmd_roll_ = 0.0F;
-  joystick_rules_.emplace_back([this](const joystick::State &state) -> std::string {
+  joystick_rules_.emplace_back([this](const joystick::State &js) -> std::string {
     if (not joystick_enabled_) return "";
-    return fmt::format("Policy/CmdRoll/SetRollUnscaled:{}",
-                       static_cast<float>(state.Right().pressed) - static_cast<float>(state.Left().pressed));
+    float cmd_roll = static_cast<float>(js.Right().pressed) - static_cast<float>(js.Left().pressed);
+    return fmt::format("Policy/CmdRoll/SetRollUnscaled:{}", cmd_roll);
   });
   return true;
 }
@@ -95,9 +95,9 @@ CmdPitchSource::CmdPitchSource(const PolicySpec &policy_spec, const std::string 
 
 bool CmdPitchSource::reset() {
   cmd_pitch_ = 0.0F;
-  joystick_rules_.emplace_back([this](const joystick::State &state) -> std::string {
+  joystick_rules_.emplace_back([this](const joystick::State &js) -> std::string {
     if (not joystick_enabled_) return "";
-    return fmt::format("Policy/CmdPitch/SetPitchUnscaled:{}", state.ras_y());
+    return fmt::format("Policy/CmdPitch/SetPitchUnscaled:{}", js.ras_y());
   });
   return true;
 }
@@ -169,13 +169,11 @@ CmdHeightSource::CmdHeightSource(const PolicySpec &policy_spec, const std::strin
 
 bool CmdHeightSource::reset() {
   cmd_height_ = default_cmd_height_;
-  joystick_rules_.emplace_back([this](const joystick::State &state) -> std::string {
-    if (not joystick_enabled_) return "";
-    return state.Up().on_press ? "Policy/CmdHeight/IncreaseHeight" : "";
+  joystick_rules_.emplace_back([this](const joystick::State &js) -> std::string {
+    return (joystick_enabled_ and js.Up().on_press) ? "Policy/CmdHeight/IncreaseHeight" : "";
   });
-  joystick_rules_.emplace_back([this](const joystick::State &state) -> std::string {
-    if (not joystick_enabled_) return "";
-    return state.Down().on_press ? "Policy/CmdHeight/DecreaseHeight" : "";
+  joystick_rules_.emplace_back([this](const joystick::State &js) -> std::string {
+    return (joystick_enabled_ and js.Down().on_press) ? "Policy/CmdHeight/DecreaseHeight" : "";
   });
   return true;
 }
