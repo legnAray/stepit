@@ -8,10 +8,7 @@ find_package(ament_cmake REQUIRED)
 # find_package(<dependency> REQUIRED)
 set(STEPIT_BIN_DESTINATION lib/${PROJECT_NAME})
 set(STEPIT_LIB_DESTINATION lib/${PROJECT_NAME})
-# Resolve real path to support building from symlinked workspace packages.
-get_filename_component(STEPIT_ROS2_DIR "${CMAKE_CURRENT_LIST_DIR}" REALPATH)
-get_filename_component(STEPIT_ROOT "${STEPIT_ROS2_DIR}/../../.." REALPATH)
-add_subdirectory("${STEPIT_ROOT}" "${CMAKE_CURRENT_BINARY_DIR}/stepit_core")
+add_subdirectory(../../.. ../stepit_core)
 
 if (BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

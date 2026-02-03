@@ -34,9 +34,7 @@ Unitree2ServiceClient &Unitree2ServiceClient::instance() {
 void Unitree2ServiceClient::initialize_() {
   if (initialized_) return;
   getenv("STEPIT_NETIF", network_interface_);
-  if (not getenv("STEPIT_DOMAIN_ID", domain_id_)) {
-    getenv("STEPIT_UNITREE2_DOMAIN_ID", domain_id_);
-  }
+  getenv("STEPIT_UNITREE2_DOMAIN_ID", domain_id_);
   u2_sdk::ChannelFactory::Instance()->Init(static_cast<int32_t>(domain_id_), network_interface_);
   simulated_   = network_interface_ == "lo";
   initialized_ = true;
