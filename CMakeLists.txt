@@ -126,8 +126,7 @@ endforeach ()
 message(STATUS "Blacklisted plugins: ${STEPIT_BLACKLIST_PLUGINS}")
 
 if (NOT DEFINED STEPIT_WHITELIST_PLUGINS)
-  set(STEPIT_WHITELIST_PLUGINS
-      "control_console;joystick_usb;joystick_udp;csv_publisher;policy_neuro;nnrt_onnxruntime;robot_unitree2;robot_unitree_go1;robot_unitree_b1;robot_unitree_aliengo")
+  set(STEPIT_WHITELIST_PLUGINS "${STEPIT_ALL_PLUGINS}")
 endif ()
 
 # Build the whitelisted plugins
