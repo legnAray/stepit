@@ -2,7 +2,7 @@
 #define STEPIT_NEURO_POLICY_CMD_POSTURE_SOURCE_H_
 
 #include <stepit/policy_neuro/cmd_vel_source.h>
-#include <stepit/policy_neuro/field.h>
+#include <stepit/policy_neuro/module.h>
 
 namespace stepit {
 namespace neuro_policy {

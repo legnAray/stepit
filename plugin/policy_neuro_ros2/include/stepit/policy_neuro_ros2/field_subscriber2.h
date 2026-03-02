@@ -4,8 +4,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <std_msgs/msg/float32_multi_array.hpp>
 
-#include <stepit/policy.h>
-#include <stepit/policy_neuro/field.h>
+#include <stepit/policy_neuro/module.h>
 
 namespace stepit::neuro_policy {
 class FieldSubscriber2 : public Module {

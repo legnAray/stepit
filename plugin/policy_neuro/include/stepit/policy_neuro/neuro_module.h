@@ -2,7 +2,7 @@
 #define STEPIT_NEURO_POLICY_NEURO_MODULE_H_
 
 #include <stepit/nnrt/nnrt.h>
-#include <stepit/policy_neuro/field.h>
+#include <stepit/policy_neuro/module.h>
 
 namespace stepit {
 namespace neuro_policy {

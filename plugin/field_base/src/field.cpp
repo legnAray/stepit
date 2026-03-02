@@ -1,29 +1,12 @@
-#include <stepit/policy_neuro/field.h>
+#include <stepit/field/field.h>
 
 namespace stepit {
-namespace neuro_policy {
-namespace {
-std::string getSubstrBeforeSlash(const std::string &input) {
-  const auto separator_pos = input.find('/');
-  if (separator_pos != std::string::npos and separator_pos > 0) {
-    return input.substr(0, separator_pos);
-  }
-  return input;
-}
-}  // namespace
-
-Module::Module(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
-    : name_(module_spec.name), config_filename_(getSubstrBeforeSlash(name_) + ".yml"), config_(module_spec.config) {
-  STEPIT_ASSERT(not name_.empty(), "Module name should not be empty.");
-  std::string config_path = joinPaths(policy_spec.home_dir, config_filename_);
-  if (not config_) config_ = yml::loadFileIf(config_path);
-}
-
-FieldId Module::registerRequirement(const std::string &field_name, FieldSize field_size) {
+namespace field {
+FieldId Node::registerRequirement(const std::string &field_name, FieldSize field_size) {
   return registerRequirement(registerField(field_name, field_size));
 }
 
-FieldId Module::registerRequirement(FieldId field_id) {
+FieldId Node::registerRequirement(FieldId field_id) {
   // If the field is not already registered as a provision, register it as a requirement.
   if (provisions_.find(field_id) == provisions_.end()) {
     requirements_.insert(field_id);
@@ -31,33 +14,16 @@ FieldId Module::registerRequirement(FieldId field_id) {
   return field_id;
 }
 
-FieldId Module::registerProvision(const std::string &field_name, FieldSize field_size) {
+FieldId Node::registerProvision(const std::string &field_name, FieldSize field_size) {
   return registerProvision(registerField(field_name, field_size));
 }
 
-FieldId Module::registerProvision(FieldId field_id) {
+FieldId Node::registerProvision(FieldId field_id) {
   // If the field is not already registered as a requirement, register it as a provision.
   if (requirements_.find(field_id) == requirements_.end()) {
     provisions_.insert(field_id);
   }
   return field_id;
-}
-
-FieldManager &FieldManager::instance() {
-  static FieldManager inst;
-  return inst;
-}
-
-auto FieldManager::registerSource(const std::string &field_name, int priority, SourceRegistry::Factory factory)
-    -> SourceRegistry::Registration {
-  std::lock_guard<std::recursive_mutex> lock(mutex_);
-  return source_registry_.createRegistration(field_name, priority, std::move(factory));
-}
-
-auto FieldManager::makeSource(const std::string &field_name, const NeuroPolicySpec &policy_spec,
-                              const std::string &name) -> Module::Ptr {
-  std::lock_guard<std::recursive_mutex> lock(mutex_);
-  return source_registry_.make(field_name, policy_spec, name);
 }
 
 FieldId FieldManager::registerField(const std::string &name, FieldSize size) {
@@ -145,5 +111,5 @@ void splitFields(cArrXf source, const FieldIdVec &field_ids, FieldMap &context) 
   STEPIT_ASSERT(offset == source.size(), "Split field size ({}) does not match the source size ({}).", offset,
                 source.size());
 }
-}  // namespace neuro_policy
+}  // namespace field
 }  // namespace stepit

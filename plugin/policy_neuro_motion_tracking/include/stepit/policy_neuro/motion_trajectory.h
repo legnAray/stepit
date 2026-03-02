@@ -2,7 +2,7 @@
 #include <string>
 #include <vector>
 
-#include <stepit/policy_neuro/field.h>
+#include <stepit/policy_neuro/module.h>
 #include <stepit/pyutils/npz_reader.h>
 
 namespace stepit {

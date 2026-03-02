@@ -3,8 +3,7 @@
 
 #include <std_msgs/Float32MultiArray.h>
 
-#include <stepit/policy.h>
-#include <stepit/policy_neuro/field.h>
+#include <stepit/policy_neuro/module.h>
 #include <stepit/ros/node_handle.h>
 
 namespace stepit {

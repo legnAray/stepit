@@ -4,7 +4,7 @@
 #include <pinocchio/multibody/data.hpp>
 #include <pinocchio/multibody/model.hpp>
 
-#include <stepit/policy_neuro/field.h>
+#include <stepit/policy_neuro/module.h>
 
 namespace stepit {
 namespace neuro_policy {

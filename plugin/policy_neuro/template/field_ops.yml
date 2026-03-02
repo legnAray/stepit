@@ -1,7 +1,7 @@
 # Generic field operations executed in order
-# Root can be either this sequence or a map with key "ops".
+# Root can be either this sequence or a map with key "operators".
 
-ops:
+operators:
   - type: affine                 # Literal["affine"]
     # Field selection
     # Option 1: In-place transform
@@ -26,6 +26,14 @@ ops:
       - joint_pos
       - joint_vel
 
+  - type: const                  # Literal["const"]
+    target: cmd_mode             # String, target field name
+    # Option 1: Scalar value
+    value: 1.0                   # Union[Float, List[Float]]
+    size: 1                      # [Optional] Int, required when value is scalar and target size > 1
+    # Option 2: Sequence value
+    # value: [1.0, 0.0, 0.0]     # size inferred from sequence length unless provided explicitly
+
   - type: copy                   # Literal["copy"]
     source: action_pos           # String, source field name
     target: action_pos_copy      # String, target field name
@@ -48,6 +56,14 @@ ops:
     end: 3                       # Int, exclusive end index when indices is not provided
     # Option 2: specify explicit indices
     # indices: [0, 1, 2]         # List[Int], explicit index selection
+
+  - type: history                # Literal["history"]
+    source: joint_pos            # String, source field name
+    target: joint_pos_history    # String, target field name
+    history_len: 3               # Int > 0, number of frames to stack
+    newest_first: true           # [Optional] Bool, newest frame at beginning when true
+    include_current_frame: true  # [Optional] Bool, include current frame in output when true
+    default_value: 0.0           # [Optional] Float or List[Float], used for initial history fill
 
   - type: split                  # Literal["split"]
     source: action               # String, source field name

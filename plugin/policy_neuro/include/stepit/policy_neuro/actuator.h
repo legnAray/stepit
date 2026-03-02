@@ -1,7 +1,7 @@
 #ifndef STEPIT_NEURO_POLICY_ACTUATOR_H_
 #define STEPIT_NEURO_POLICY_ACTUATOR_H_
 
-#include <stepit/policy_neuro/field.h>
+#include <stepit/policy_neuro/module.h>
 
 namespace stepit {
 namespace neuro_policy {

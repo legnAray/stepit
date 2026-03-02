@@ -57,6 +57,7 @@ Read the corresponding `README.md` first if you use any of the plugins.
 
 - [`control_console`](plugin/control_console): Controlling with standard input.
 - [`debugging_helper`](plugin/debugging_helper): Helper utilities for debugging.
+- [`field_base`](plugin/field_base): Field registration and generic field operators.
 - [`joystick_base`](plugin/joystick_base): Interface for general joystick and joystick control.
 - [`joystick_udp`](plugin/joystick_udp): Controlling with retroid gamepads.
 - [`joystick_usb`](plugin/joystick_usb): Controlling with USB joysticks, e.g. Xbox 360 controller.

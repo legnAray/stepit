@@ -7,12 +7,10 @@ stepit_add_plugin(${PROJECT_NAME}
       src/actuator.cpp
       src/cmd_posture_source.cpp
       src/cmd_vel_source.cpp
-      src/const_field_source.cpp
-      src/field.cpp
-      src/field_history.cpp
       src/field_ops.cpp
       src/heightmap_source.cpp
       src/joint_reordering.cpp
+      src/module.cpp
       src/neuro_module.cpp
       src/neuro_policy.cpp
       src/odometry_source.cpp
@@ -24,6 +22,7 @@ stepit_add_plugin(${PROJECT_NAME}
     FLAGS
       -Wall -Wextra -Wpedantic -Wno-unused-parameter
     DEPENDS
+      field_base
       joystick_base
       nnrt_base
 )
