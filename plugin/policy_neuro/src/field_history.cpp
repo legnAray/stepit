@@ -19,7 +19,7 @@ FieldHistoryBuffer::FieldHistoryBuffer(const std::pair<YAML::Node, YAML::Node> &
   target_id_ = registerField(target_name_, 0);
 }
 
-void FieldHistoryBuffer::initFieldProperties() {
+void FieldHistoryBuffer::init() {
   source_size_                = getFieldSize(source_id_);
   const FieldSize target_size = source_size_ * history_len_;
   setFieldSize(target_id_, target_size);
@@ -80,9 +80,9 @@ FieldHistory::FieldHistory(const NeuroPolicySpec &policy_spec, const std::string
   }
 }
 
-void FieldHistory::initFieldProperties() {
+void FieldHistory::init() {
   for (auto &buffer : buffers_) {
-    buffer.initFieldProperties();
+    buffer.init();
   }
 }
 

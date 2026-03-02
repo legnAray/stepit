@@ -78,7 +78,7 @@ NeuroPolicy::NeuroPolicy(const RobotSpec &robot_spec, const std::string &home_di
 
   STEPIT_DBUGNT("Modules:");
   for (const auto &module : resolved_modules_) {
-    module->initFieldProperties();
+    module->init();
     STEPIT_DBUGNT("- {} ({})", module->name(), getTypeName(*module));
   }
   displayFormattedBanner(60);
@@ -140,7 +140,9 @@ bool NeuroPolicy::act(const LowState &low_state, ControlRequests &requests, LowC
       return false;
     }
   }
-  for (const auto &module : resolved_modules_) module->postUpdate(context);
+  for (const auto &module : resolved_modules_) {
+    module->finalize(context);
+  }
   action_ = context.at(action_id_);
   actuator_->setLowCmd(cmd, action_);
 

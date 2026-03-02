@@ -14,7 +14,7 @@ ActionHistory::ActionHistory(const NeuroPolicySpec &policy_spec, const std::stri
   action_p2_id_   = registerProvision("action_p2", 0);
 }
 
-void ActionHistory::initFieldProperties() {
+void ActionHistory::init() {
   auto action_dim = getFieldSize(action_id_);
 
   populateArray(default_action_, action_dim);
@@ -35,7 +35,7 @@ bool ActionHistory::update(const LowState &low_state, ControlRequests &requests,
   return true;
 }
 
-void ActionHistory::postUpdate(const FieldMap &field_map) { action_buf_.push_back(field_map.at(action_id_)); }
+void ActionHistory::finalize(const FieldMap &field_map) { action_buf_.push_back(field_map.at(action_id_)); }
 
 ActionFilter::ActionFilter(const NeuroPolicySpec &policy_spec, const std::string &name)
     : Module(policy_spec, nonEmptyOr(name, "action_filter")) {
@@ -47,7 +47,7 @@ ActionFilter::ActionFilter(const NeuroPolicySpec &policy_spec, const std::string
   action_id_ = registerRequirement("action");
 }
 
-void ActionFilter::initFieldProperties() {
+void ActionFilter::init() {
   auto action_dim = getFieldSize(action_id_);
   populateArray(default_action_, action_dim);
 }

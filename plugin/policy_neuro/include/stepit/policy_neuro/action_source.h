@@ -11,10 +11,10 @@ namespace neuro_policy {
 class ActionHistory : public Module {
  public:
   ActionHistory(const NeuroPolicySpec &policy_spec, const std::string &name);
-  void initFieldProperties() override;
+  void init() override;
   bool reset() override;
   bool update(const LowState &low_state, ControlRequests &requests, FieldMap &context) override;
-  void postUpdate(const FieldMap &field_map) override;
+  void finalize(const FieldMap &field_map) override;
 
  private:
   FieldId action_id_{};
@@ -28,7 +28,7 @@ class ActionHistory : public Module {
 class ActionFilter : public Module {
  public:
   ActionFilter(const NeuroPolicySpec &policy_spec, const std::string &name);
-  void initFieldProperties() override;
+  void init() override;
   bool reset() override;
   bool update(const LowState &low_state, ControlRequests &requests, FieldMap &context) override;
 

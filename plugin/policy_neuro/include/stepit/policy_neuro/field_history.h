@@ -10,7 +10,7 @@ class FieldHistoryBuffer {
   FieldHistoryBuffer() = default;
   explicit FieldHistoryBuffer(const std::pair<YAML::Node, YAML::Node> &node);
 
-  void initFieldProperties();
+  void init();
   FieldId getSourceId() const { return source_id_; }
   FieldId getTargetId() const { return target_id_; }
   void clear() { history_.clear(); }
@@ -39,7 +39,7 @@ class FieldHistoryBuffer {
 class FieldHistory : public Module {
  public:
   FieldHistory(const NeuroPolicySpec &policy_spec, const std::string &name);
-  void initFieldProperties() override;
+  void init() override;
   bool reset() override;
   bool update(const LowState &low_state, ControlRequests &requests, FieldMap &context) override;
 

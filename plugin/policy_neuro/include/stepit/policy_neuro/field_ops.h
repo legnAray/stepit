@@ -8,7 +8,7 @@ namespace neuro_policy {
 class FieldOps : public Module {
  public:
   FieldOps(const NeuroPolicySpec &policy_spec, const std::string &name);
-  void initFieldProperties() override;
+  void init() override;
   bool update(const LowState &, ControlRequests &, FieldMap &context) override;
 
  private:

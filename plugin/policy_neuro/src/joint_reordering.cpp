@@ -24,7 +24,7 @@ JointReordering::JointReordering(const NeuroPolicySpec &policy_spec, const std::
   joint_vel_id_ = registerRequirement("joint_vel");
 }
 
-void JointReordering::initFieldProperties() {
+void JointReordering::init() {
   STEPIT_ASSERT_EQ(joint_order_.size(), getFieldSize(joint_pos_id_),
                    "Joint order size mismatch with joint_pos field size.");
   STEPIT_ASSERT_EQ(joint_order_.size(), getFieldSize(joint_vel_id_),
@@ -64,7 +64,7 @@ ActionReordering::ActionReordering(const NeuroPolicySpec &policy_spec, const std
   action_id_ = registerRequirement("action");
 }
 
-void ActionReordering::initFieldProperties() {
+void ActionReordering::init() {
   STEPIT_ASSERT_EQ(joint_order_.size(), getFieldSize(action_id_), "Joint order size mismatch with action field size.");
 }
 

@@ -122,7 +122,7 @@ FieldOps::FieldOps(const NeuroPolicySpec &policy_spec, const std::string &name)
   }
 }
 
-void FieldOps::initFieldProperties() {
+void FieldOps::init() {
   for (auto &operation : operations_) {
     switch (operation.type) {
       case OpType::kAffine: {

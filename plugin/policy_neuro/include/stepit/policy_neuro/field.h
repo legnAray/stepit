@@ -28,10 +28,10 @@ struct NeuroPolicySpec : PolicySpec {
 
 class Module : public Interface<Module, const NeuroPolicySpec & /* policy_spec */, const std::string & /* name */> {
  public:
-  virtual void initFieldProperties() {}
+  virtual void init() {}
   virtual bool reset() { return true; }
   virtual bool update(const LowState &low_state, ControlRequests &requests, FieldMap &context) = 0;
-  virtual void postUpdate(const FieldMap &field_map) {}
+  virtual void finalize(const FieldMap &field_map) {}
   virtual void exit() {}
 
   const std::string &name() const { return name_; }
