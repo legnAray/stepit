@@ -4,8 +4,8 @@
 
 namespace stepit {
 namespace neuro_policy {
-ConstFieldSource::ConstFieldSource(const NeuroPolicySpec &policy_spec, const std::string &name)
-    : Module(policy_spec, nonEmptyOr(name, "const_field")) {
+ConstFieldSource::ConstFieldSource(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
+    : Module(policy_spec, ModuleSpec(module_spec, "const_field")) {
   STEPIT_ASSERT(config_.IsMap(), "'{}' must contain a map of constant fields.", config_filename_);
 
   for (const auto &node : config_) {

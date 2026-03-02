@@ -9,7 +9,7 @@ enum class Rotation6dOrder { kRowMajor, kColumnMajor };
 
 class RelativeOriSource : public Module {
  public:
-  RelativeOriSource(const NeuroPolicySpec &, const std::string &name);
+  RelativeOriSource(const NeuroPolicySpec &, const ModuleSpec &module_spec);
   bool update(const LowState &, ControlRequests &, FieldMap &context) override;
 
  protected:
@@ -24,7 +24,7 @@ class RelativeOriSource : public Module {
 
 class RelativePosSource : public Module {
  public:
-  RelativePosSource(const NeuroPolicySpec &, const std::string &name);
+  RelativePosSource(const NeuroPolicySpec &, const ModuleSpec &module_spec);
   bool update(const LowState &, ControlRequests &, FieldMap &context) override;
 
  protected:
@@ -39,7 +39,7 @@ class RelativePosSource : public Module {
 
 class MotionAlignment : public Module {
  public:
-  MotionAlignment(const NeuroPolicySpec &, const std::string &name);
+  MotionAlignment(const NeuroPolicySpec &, const ModuleSpec &module_spec);
   bool reset() override;
   bool update(const LowState &, ControlRequests &, FieldMap &context) override;
 

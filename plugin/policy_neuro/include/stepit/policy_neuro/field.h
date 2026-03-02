@@ -26,12 +26,22 @@ struct NeuroPolicySpec : PolicySpec {
   ArrXf default_action;
 };
 
-class Module : public Interface<Module, const NeuroPolicySpec & /* policy_spec */, const std::string & /* name */> {
+struct ModuleSpec {
+  ModuleSpec() = default;
+  ModuleSpec(const std::string &name, const YAML::Node &config = YAML::Node()) : name(name), config(config) {}
+  ModuleSpec(const ModuleSpec &other, const std::string &default_name)
+      : name(nonEmptyOr(other.name, default_name)), config(other.config) {}
+
+  std::string name;
+  YAML::Node config;
+};
+
+class Module : public Interface<Module, const NeuroPolicySpec & /* policy_spec */, const ModuleSpec & /* name */> {
  public:
   virtual void init() {}
   virtual bool reset() { return true; }
   virtual bool update(const LowState &low_state, ControlRequests &requests, FieldMap &context) = 0;
-  virtual void finalize(const FieldMap &field_map) {}
+  virtual void finalize(const FieldMap &context) {}
   virtual void exit() {}
 
   const std::string &name() const { return name_; }
@@ -39,7 +49,7 @@ class Module : public Interface<Module, const NeuroPolicySpec & /* policy_spec *
   const std::set<FieldId> &provisions() const { return provisions_; }
 
  protected:
-  Module(const NeuroPolicySpec &policy_spec, std::string name, bool allow_config_missing = false);
+  Module(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec);
   FieldId registerRequirement(const std::string &field_name, FieldSize field_size = 0);
   FieldId registerRequirement(FieldId field_id);
   FieldId registerProvision(const std::string &field_name, FieldSize field_size);

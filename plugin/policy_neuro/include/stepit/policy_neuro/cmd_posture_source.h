@@ -8,7 +8,7 @@ namespace stepit {
 namespace neuro_policy {
 class CmdRollSource : public Module {
  public:
-  CmdRollSource(const NeuroPolicySpec &policy_spec, const std::string &name);
+  CmdRollSource(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec);
   bool reset() override;
   bool update(const LowState &low_state, ControlRequests &requests, FieldMap &context) override;
   void exit() override;
@@ -36,7 +36,7 @@ class CmdRollSource : public Module {
 
 class CmdPitchSource : public Module {
  public:
-  CmdPitchSource(const NeuroPolicySpec &policy_spec, const std::string &name);
+  CmdPitchSource(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec);
   bool reset() override;
   bool update(const LowState &low_state, ControlRequests &requests, FieldMap &context) override;
   void exit() override;
@@ -64,7 +64,7 @@ class CmdPitchSource : public Module {
 
 class CmdHeightSource : public Module {
  public:
-  CmdHeightSource(const NeuroPolicySpec &policy_spec, const std::string &name);
+  CmdHeightSource(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec);
   bool reset() override;
   bool update(const LowState &low_state, ControlRequests &requests, FieldMap &context) override;
   void exit() override;

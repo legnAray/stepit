@@ -2,8 +2,8 @@
 
 namespace stepit {
 namespace neuro_policy {
-RelativeOriSource::RelativeOriSource(const NeuroPolicySpec &policy_spec, const std::string &name)
-    : Module(policy_spec, nonEmptyOr(name, "relative_pose/ori"), true) {
+RelativeOriSource::RelativeOriSource(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
+    : Module(policy_spec, ModuleSpec(module_spec, "relative_pose/ori")) {
   current_ori_name_ = yml::readIf<std::string>(config_, "current_ori_name", "base_global_ori");
   target_ori_name_  = yml::readIf<std::string>(config_, "target_ori_name", "base_target_ori");
   auto rot6d_order  = yml::readIf<std::string>(config_, "rotation_6d_order", "row_major");
@@ -48,8 +48,8 @@ bool RelativeOriSource::update(const LowState &, ControlRequests &, FieldMap &co
   return true;
 }
 
-RelativePosSource::RelativePosSource(const NeuroPolicySpec &policy_spec, const std::string &name)
-    : Module(policy_spec, nonEmptyOr(name, "relative_pose/pos"), true) {
+RelativePosSource::RelativePosSource(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
+    : Module(policy_spec, ModuleSpec(module_spec, "relative_pose/pos")) {
   current_pos_name_ = yml::readIf<std::string>(config_, "current_pos_name", "base_global_pos");
   current_ori_name_ = yml::readIf<std::string>(config_, "current_ori_name", "base_global_ori");
   target_pos_name_  = yml::readIf<std::string>(config_, "target_pos_name", "base_target_pos");
@@ -70,8 +70,8 @@ bool RelativePosSource::update(const LowState &, ControlRequests &, FieldMap &co
   return true;
 }
 
-MotionAlignment::MotionAlignment(const NeuroPolicySpec &policy_spec, const std::string &name)
-    : Module(policy_spec, nonEmptyOr(name, "motion_alignment"), true) {
+MotionAlignment::MotionAlignment(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
+    : Module(policy_spec, ModuleSpec(module_spec, "motion_alignment")) {
   initialized_ = false;
   world_to_init_yaw_.setIdentity();
   world_to_init_pos_ = Vec3f::Zero();

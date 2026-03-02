@@ -4,8 +4,8 @@
 
 namespace stepit {
 namespace neuro_policy {
-JointReordering::JointReordering(const NeuroPolicySpec &policy_spec, const std::string &name)
-    : Module(policy_spec, nonEmptyOr(name, "joint_reordering/measurements")) {
+JointReordering::JointReordering(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
+    : Module(policy_spec, ModuleSpec(module_spec, "joint_reordering/measurements")) {
   yml::setTo(config_, "order", joint_order_);
   yml::setIf(config_, "reversed", joint_reversed_);
 
@@ -45,8 +45,8 @@ bool JointReordering::update(const LowState &, ControlRequests &, FieldMap &cont
   return true;
 }
 
-ActionReordering::ActionReordering(const NeuroPolicySpec &policy_spec, const std::string &name)
-    : Module(policy_spec, nonEmptyOr(name, "joint_reordering/action")) {
+ActionReordering::ActionReordering(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
+    : Module(policy_spec, ModuleSpec(module_spec, "joint_reordering/action")) {
   yml::setTo(config_, "order", joint_order_);
   yml::setIf(config_, "reversed", joint_reversed_);
 

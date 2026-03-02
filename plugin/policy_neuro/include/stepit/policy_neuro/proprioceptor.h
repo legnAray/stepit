@@ -7,7 +7,7 @@ namespace stepit {
 namespace neuro_policy {
 class Proprioceptor : public Module {
  public:
-  Proprioceptor(const NeuroPolicySpec &policy_spec, const std::string &name);
+  Proprioceptor(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec);
   bool reset() override { return true; }
   bool update(const LowState &low_state, ControlRequests &, FieldMap &context) override;
 
@@ -21,7 +21,7 @@ class Proprioceptor : public Module {
 
 class RollPitchSource : public Module {
  public:
-  RollPitchSource(const NeuroPolicySpec &, const std::string &name);
+  RollPitchSource(const NeuroPolicySpec &, const ModuleSpec &module_spec);
   bool reset() override { return true; }
   bool update(const LowState &, ControlRequests &, FieldMap &context) override;
 

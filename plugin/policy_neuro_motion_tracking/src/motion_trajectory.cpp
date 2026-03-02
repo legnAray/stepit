@@ -7,8 +7,8 @@
 
 namespace stepit {
 namespace neuro_policy {
-MotionTrajectory::MotionTrajectory(const NeuroPolicySpec &policy_spec, const std::string &name)
-    : Module(policy_spec, nonEmptyOr(name, "motion_trajectory")) {
+MotionTrajectory::MotionTrajectory(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
+    : Module(policy_spec, ModuleSpec(module_spec, "motion_trajectory")) {
   npz_filename_ = yml::readIf<std::string>(config_, "npz_filename", name_ + ".npz");
   STEPIT_ASSERT(not npz_filename_.empty(), "'npz_filename' cannot be empty.");
   npz_.readFile((npz_filename_[0] == '/') ? npz_filename_ : joinPaths(policy_spec.home_dir, npz_filename_));

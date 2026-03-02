@@ -4,8 +4,8 @@
 
 namespace stepit {
 namespace neuro_policy {
-NeuroModule::NeuroModule(const NeuroPolicySpec &policy_spec, const std::string &name)
-    : Module(policy_spec, nonEmptyOr(name, "neuro_module"), true) {
+NeuroModule::NeuroModule(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
+    : Module(policy_spec, ModuleSpec(module_spec, "neuro_module")) {
   yml::setIf(config_, "nnrt_factory", nnrt_factory_);
   model_path_ = yml::readIf<std::string>(config_, "model_path", name_);
   STEPIT_ASSERT(not model_path_.empty(), "'model_path' cannot be empty.");
@@ -168,11 +168,11 @@ void NeuroModule::printNodeFields(const std::vector<std::string> &node_names,
   }
 }
 
-NeuroActor::NeuroActor(const NeuroPolicySpec &policy_spec, const std::string &name)
-    : NeuroModule(policy_spec, nonEmptyOr(name, "actor")) {}
+NeuroActor::NeuroActor(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
+    : NeuroModule(policy_spec, ModuleSpec(module_spec, "actor")) {}
 
-NeuroEstimator::NeuroEstimator(const NeuroPolicySpec &policy_spec, const std::string &name)
-    : NeuroModule(policy_spec, nonEmptyOr(name, "estimator")) {}
+NeuroEstimator::NeuroEstimator(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
+    : NeuroModule(policy_spec, ModuleSpec(module_spec, "estimator")) {}
 
 STEPIT_REGISTER_MODULE(neuro, kDefPriority, Module::make<NeuroModule>);
 STEPIT_REGISTER_MODULE(actor, kDefPriority, Module::make<NeuroActor>);

@@ -68,8 +68,8 @@ const ArrXf &FieldHistoryBuffer::update(const ArrXf &frame) {
   return output_;
 }
 
-FieldHistory::FieldHistory(const NeuroPolicySpec &policy_spec, const std::string &name)
-    : Module(policy_spec, nonEmptyOr(name, "field_history")) {
+FieldHistory::FieldHistory(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
+    : Module(policy_spec, ModuleSpec(module_spec, "field_history")) {
   STEPIT_ASSERT(config_.IsMap(), "'{}' must contain a map of field history configurations.", config_filename_);
 
   for (const auto &node : config_) {

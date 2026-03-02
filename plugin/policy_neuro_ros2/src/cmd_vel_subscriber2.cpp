@@ -3,8 +3,8 @@
 #include <stepit/ros2/node.h>
 
 namespace stepit::neuro_policy {
-CmdVelSubscriber2::CmdVelSubscriber2(const NeuroPolicySpec &policy_spec, const std::string &name)
-    : CmdVelSource(policy_spec, name) {
+CmdVelSubscriber2::CmdVelSubscriber2(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
+    : CmdVelSource(policy_spec, ModuleSpec(module_spec, "cmd_vel_subscriber")) {
   YAML::Node subscriber_cfg     = config_["cmd_vel_subscriber"];
   auto [topic, topic_type, qos] = parseTopicInfo(subscriber_cfg, "cmd_vel", "geometry_msgs/msg/Twist");
   yml::setIf(subscriber_cfg, "timeout_threshold", timeout_threshold_);

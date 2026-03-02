@@ -2,8 +2,8 @@
 
 namespace stepit {
 namespace neuro_policy {
-TimeStepSource::TimeStepSource(const NeuroPolicySpec &policy_spec, const std::string &name)
-    : Module(policy_spec, nonEmptyOr(name, "time_step"), true) {
+TimeStepSource::TimeStepSource(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
+    : Module(policy_spec, ModuleSpec(module_spec, "time_step")) {
   time_step_id_ = registerProvision("time_step", 1);
 }
 

@@ -6,8 +6,8 @@
 
 namespace stepit {
 namespace neuro_policy {
-ForwardKinematics::ForwardKinematics(const NeuroPolicySpec &policy_spec, const std::string &name)
-    : Module(policy_spec, nonEmptyOr(name, "forward_kinematics")) {
+ForwardKinematics::ForwardKinematics(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
+    : Module(policy_spec, ModuleSpec(module_spec, "forward_kinematics")) {
   urdf_filename_ = yml::readIf<std::string>(config_, "urdf_filename", "robot.urdf");
   STEPIT_ASSERT(not urdf_filename_.empty(), "'urdf_filename' cannot be empty.");
   urdf_filename_ = urdf_filename_[0] == '/' ? urdf_filename_ : joinPaths(policy_spec.home_dir, urdf_filename_);

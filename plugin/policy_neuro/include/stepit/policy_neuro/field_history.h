@@ -38,7 +38,7 @@ class FieldHistoryBuffer {
 
 class FieldHistory : public Module {
  public:
-  FieldHistory(const NeuroPolicySpec &policy_spec, const std::string &name);
+  FieldHistory(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec);
   void init() override;
   bool reset() override;
   bool update(const LowState &low_state, ControlRequests &requests, FieldMap &context) override;

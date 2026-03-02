@@ -2,8 +2,8 @@
 
 namespace stepit {
 namespace neuro_policy {
-Actuator::Actuator(const NeuroPolicySpec &policy_spec, const std::string &name)
-    : Module(policy_spec, nonEmptyOr(name, "actuator"), true) {
+Actuator::Actuator(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
+    : Module(policy_spec, ModuleSpec(module_spec, "actuator")) {
   YAML::Node policy_config = yml::loadFile(joinPaths(policy_spec.home_dir, "policy.yml"));
   yml::assertHasValue(policy_config, "actuator");
   config_ = policy_config["actuator"];
@@ -33,8 +33,8 @@ Actuator::Actuator(const NeuroPolicySpec &policy_spec, const std::string &name)
   }
 }
 
-PositionActuator::PositionActuator(const NeuroPolicySpec &policy_spec, const std::string &name)
-    : Actuator(policy_spec, name) {
+PositionActuator::PositionActuator(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
+    : Actuator(policy_spec, module_spec) {
   target_joint_pos_.setZero(policy_spec.dof);
   last_target_joint_pos_id_ = registerProvision("last_target_joint_pos", target_joint_pos_.size());
 }
@@ -67,8 +67,8 @@ void PositionActuator::setLowCmd(LowCmd &cmd, cArrXf action) {
   }
 }
 
-VelocityActuator::VelocityActuator(const NeuroPolicySpec &policy_spec, const std::string &name)
-    : Actuator(policy_spec, name) {
+VelocityActuator::VelocityActuator(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
+    : Actuator(policy_spec, module_spec) {
   target_joint_vel_         = bias_;
   last_target_joint_vel_id_ = registerProvision("last_target_joint_vel", target_joint_vel_.size());
 }
@@ -94,8 +94,8 @@ void VelocityActuator::setLowCmd(LowCmd &cmd, cArrXf action) {
   }
 }
 
-TorqueActuator::TorqueActuator(const NeuroPolicySpec &policy_spec, const std::string &name)
-    : Actuator(policy_spec, name) {
+TorqueActuator::TorqueActuator(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
+    : Actuator(policy_spec, module_spec) {
   target_joint_tor_         = bias_;
   last_target_joint_tor_id_ = registerProvision("last_target_joint_tor", target_joint_tor_.size());
 }
@@ -129,8 +129,8 @@ const std::map<std::string, HybridActuator::Mode> HybridActuator::kModeMap = {
 };
 // clang-format on
 
-HybridActuator::HybridActuator(const NeuroPolicySpec &policy_spec, const std::string &name)
-    : Actuator(policy_spec, name) {
+HybridActuator::HybridActuator(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
+    : Actuator(policy_spec, module_spec) {
   if (yml::hasValue(config_, "parameters")) {
     yml::Node parameters = config_["parameters"];
     for (const auto &node : config_["parameters"]) {

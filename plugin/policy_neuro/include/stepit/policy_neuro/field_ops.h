@@ -7,7 +7,7 @@ namespace stepit {
 namespace neuro_policy {
 class FieldOps : public Module {
  public:
-  FieldOps(const NeuroPolicySpec &policy_spec, const std::string &name);
+  FieldOps(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec);
   void init() override;
   bool update(const LowState &, ControlRequests &, FieldMap &context) override;
 

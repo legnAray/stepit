@@ -7,7 +7,7 @@ namespace stepit {
 namespace neuro_policy {
 class DummyOdometrySource : public Module {
  public:
-  DummyOdometrySource(const NeuroPolicySpec &, const std::string &name);
+  DummyOdometrySource(const NeuroPolicySpec &, const ModuleSpec &module_spec);
   bool reset() override;
   bool update(const LowState &low_state, ControlRequests &, FieldMap &context) override;
 

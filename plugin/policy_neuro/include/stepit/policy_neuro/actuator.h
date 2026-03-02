@@ -15,7 +15,7 @@ class Actuator : public Module,
   using Factory      = Interface::Factory;
   using Interface::make;
 
-  Actuator(const NeuroPolicySpec &policy_spec, const std::string &name);
+  Actuator(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec);
   bool update(const LowState &low_state, ControlRequests &requests, FieldMap &context) override { return true; }
   virtual void setLowCmd(LowCmd &cmd, cArrXf action) = 0;
 
@@ -26,7 +26,7 @@ class Actuator : public Module,
 
 class PositionActuator : public Actuator {
  public:
-  PositionActuator(const NeuroPolicySpec &policy_spec, const std::string &name);
+  PositionActuator(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec);
   bool reset() override;
   bool update(const LowState &low_state, ControlRequests &requests, FieldMap &context) override;
   void setLowCmd(LowCmd &cmd, cArrXf action) override;
@@ -39,7 +39,7 @@ class PositionActuator : public Actuator {
 
 class VelocityActuator : public Actuator {
  public:
-  VelocityActuator(const NeuroPolicySpec &policy_spec, const std::string &name);
+  VelocityActuator(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec);
   bool reset() override;
   bool update(const LowState &low_state, ControlRequests &requests, FieldMap &context) override;
   void setLowCmd(LowCmd &cmd, cArrXf action) override;
@@ -51,7 +51,7 @@ class VelocityActuator : public Actuator {
 
 class TorqueActuator : public Actuator {
  public:
-  TorqueActuator(const NeuroPolicySpec &policy_spec, const std::string &name);
+  TorqueActuator(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec);
   bool reset() override;
   bool update(const LowState &low_state, ControlRequests &requests, FieldMap &context) override;
   void setLowCmd(LowCmd &cmd, cArrXf action) override;
@@ -63,7 +63,7 @@ class TorqueActuator : public Actuator {
 
 class HybridActuator : public Actuator {
  public:
-  HybridActuator(const NeuroPolicySpec &policy_spec, const std::string &name);
+  HybridActuator(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec);
   bool reset() override;
   bool update(const LowState &low_state, ControlRequests &requests, FieldMap &context) override;
   void setLowCmd(LowCmd &cmd, cArrXf action) override;

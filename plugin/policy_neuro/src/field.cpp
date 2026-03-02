@@ -12,13 +12,11 @@ std::string getSubstrBeforeSlash(const std::string &input) {
 }
 }  // namespace
 
-Module::Module(const NeuroPolicySpec &policy_spec, std::string name, bool allow_config_missing)
-    : name_(std::move(name)), config_filename_(getSubstrBeforeSlash(name_) + ".yml") {
+Module::Module(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
+    : name_(module_spec.name), config_filename_(getSubstrBeforeSlash(name_) + ".yml"), config_(module_spec.config) {
   STEPIT_ASSERT(not name_.empty(), "Module name should not be empty.");
   std::string config_path = joinPaths(policy_spec.home_dir, config_filename_);
-  if (not allow_config_missing or fs::exists(config_path)) {
-    config_ = yml::loadFile(config_path);
-  }
+  if (not config_) config_ = yml::loadFileIf(config_path);
 }
 
 FieldId Module::registerRequirement(const std::string &field_name, FieldSize field_size) {

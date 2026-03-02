@@ -3,8 +3,8 @@
 
 namespace stepit {
 namespace neuro_policy {
-ActionHistory::ActionHistory(const NeuroPolicySpec &policy_spec, const std::string &name)
-    : Module(policy_spec, nonEmptyOr(name, "action_history"), true) {
+ActionHistory::ActionHistory(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
+    : Module(policy_spec, ModuleSpec(module_spec, "action_history")) {
   default_action_ = policy_spec.default_action;
   action_buf_.allocate(5);
 
@@ -35,10 +35,10 @@ bool ActionHistory::update(const LowState &low_state, ControlRequests &requests,
   return true;
 }
 
-void ActionHistory::finalize(const FieldMap &field_map) { action_buf_.push_back(field_map.at(action_id_)); }
+void ActionHistory::finalize(const FieldMap &context) { action_buf_.push_back(context.at(action_id_)); }
 
-ActionFilter::ActionFilter(const NeuroPolicySpec &policy_spec, const std::string &name)
-    : Module(policy_spec, nonEmptyOr(name, "action_filter")) {
+ActionFilter::ActionFilter(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
+    : Module(policy_spec, ModuleSpec(module_spec, "action_filter")) {
   default_action_ = policy_spec.default_action;
   yml::setTo(config_, "window_size", window_size_);
   STEPIT_ASSERT(window_size_ > 1, "'window_size' must be greater than 1.");

@@ -11,7 +11,7 @@ namespace stepit {
 namespace neuro_policy {
 class CmdVelSubscriber : public CmdVelSource {
  public:
-  CmdVelSubscriber(const NeuroPolicySpec &policy_spec, const std::string &name);
+  CmdVelSubscriber(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec);
   bool reset() override;
   bool update(const LowState &low_state, ControlRequests &requests, FieldMap &context) override;
   void exit() override;

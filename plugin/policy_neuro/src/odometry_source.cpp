@@ -2,8 +2,8 @@
 
 namespace stepit {
 namespace neuro_policy {
-DummyOdometrySource::DummyOdometrySource(const NeuroPolicySpec &policy_spec, const std::string &name)
-    : Module(policy_spec, nonEmptyOr(name, "odometry"), true) {
+DummyOdometrySource::DummyOdometrySource(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
+    : Module(policy_spec, ModuleSpec(module_spec, "odometry")) {
   base_global_pos_id_ = registerProvision("base_global_pos", 3);
   base_global_ori_id_ = registerProvision("base_global_ori", 4);
 }
