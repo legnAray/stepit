@@ -15,8 +15,10 @@ RobotSpec::RobotSpec(const YAML::Node &config) {
   standing_cfg.resize(dof);
   lying_cfg.resize(dof);
 
-  yml::setTo(config, "kp", kp);
-  yml::setTo(config, "kd", kd);
+  std::string kp_key = yml::getDefinedKey(config, "stiffness", "kp", "Kp");
+  yml::setTo(config, kp_key, kp);
+  std::string kd_key = yml::getDefinedKey(config, "damping", "kd", "Kd");
+  yml::setTo(config, kd_key, kd);
   yml::setIf(config, "stuck_threshold", stuck_threshold);
 
   if (auto node = config["safety"]) {

@@ -22,14 +22,18 @@ Actuator::Actuator(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_
       auto param = parameters[i];
       yml::setIf(param, "scale", scale_[i]);
       yml::setIf(param, "bias", bias_[i]);
-      yml::setIf(param, "Kp", kp_[i]);
-      yml::setIf(param, "Kd", kd_[i]);
+      std::string kp_key = yml::getDefinedKey(param, "stiffness", "kp", "Kp");
+      std::string kd_key = yml::getDefinedKey(param, "damping", "kd", "Kd");
+      yml::setIf(param, kp_key, kp_[i]);
+      yml::setIf(param, kd_key, kd_[i]);
     }
   } else {
     yml::setIf(config_, "scale", scale_);
     yml::setIf(config_, "bias", bias_);
-    yml::setIf(config_, "Kp", kp_);
-    yml::setIf(config_, "Kd", kd_);
+    std::string kp_key = yml::getDefinedKey(config_, "stiffness", "kp", "Kp");
+    std::string kd_key = yml::getDefinedKey(config_, "damping", "kd", "Kd");
+    yml::setIf(config_, kp_key, kp_);
+    yml::setIf(config_, kd_key, kd_);
   }
 }
 
