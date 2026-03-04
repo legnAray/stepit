@@ -32,6 +32,27 @@ class Go2Api final : public RobotApi {
   LowState low_state_;
   std::mutex mutex_;
 };
+
+class Go2WApi final : public RobotApi {
+ public:
+  Go2WApi();
+  void getControl(bool enable) override;
+  void setSend(const LowCmd &cmd_msg) override;
+  void getRecv(LowState &state_msg) override;
+  void send() override;
+  void recv() override {}
+
+  static constexpr const char *kRobotName = "go2w";
+
+ private:
+  void callback(const u2_msg::LowState_ *msg);
+
+  u2_sdk::ChannelPublisherPtr<u2_msg::LowCmd_> low_cmd_pub_;
+  u2_sdk::ChannelSubscriberPtr<u2_msg::LowState_> low_state_sub_;
+  u2_msg::LowCmd_ low_cmd_{};
+  LowState low_state_;
+  std::mutex mutex_;
+};
 }  // namespace stepit
 
 #endif  // STEPIT_ROBOT_UNITREE2_GO2_H_
