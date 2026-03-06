@@ -43,7 +43,9 @@ CmdVelSource::CmdVelSource(const NeuroPolicySpec &policy_spec, const ModuleSpec 
 bool CmdVelSource::reset() {
   mode_ = kAuto;
   cmd_vel_.setZero();
+  target_cmd_vel_.setZero();
   cmd_stall_ = true;
+  velocity_turbo_ratio_ = 0.0;
 
   joystick_rules_.emplace_back([this](const joystick::State &js) -> std::string {
     if (not joystick_enabled_) return "";

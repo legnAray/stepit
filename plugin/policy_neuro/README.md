@@ -23,24 +23,28 @@ StepIt plugin for running neural network-based policy.
 
 - `stepit::neuro_policy::Module`:
 
-  | Name                | Description                                           |
-  | :------------------ | :---------------------------------------------------- |
-  | `action_history`    | Provides history of action commands.                  |
-  | `action_filter`     | Applies low-pass filtering to action commands.        |
-  | `action_reordering` | Reorders action commands.                             |
-  | `actor`             | Infers the neural network actor to produce actions.   |
-  | `cmd_height`        | Provides height command input.                        |
-  | `cmd_pitch`         | Provides pitch command input.                         |
-  | `cmd_roll`          | Provides roll command input.                          |
-  | `cmd_vel`           | Provides velocity command input.                      |
-  | `estimator`         | Infers the neural network state estimator.            |
-  | `field_ops`         | Applies generic field operations.                     |
-  | `heightmap`         | Provides dummy heightmap observations.                |
-  | `joint_reorder`     | Reorders joint states.                                |
-  | `odometry`          | Provides dummy odometry observations.                 |
-  | `roll_pitch`        | Provides the roll and pitch observations.             |
-  | `proprioceptor`     | Provides proprioceptive observations.                 |
-  | `time_step`         | Provides monotonically increasing timestep index.     |
+  | Name                     | Description                                         |
+  | :----------------------- | :-------------------------------------------------- |
+  | `action_history`         | Provides history of action commands.                |
+  | `action_filter`          | Applies low-pass filtering to action commands.      |
+  | `action_reordering`      | Reorders action commands.                           |
+  | `actor`                  | Infers the neural network actor to produce actions. |
+  | `cmd_height_source`      | Provides height command input.                      |
+  | `cmd_pitch_source`       | Provides pitch command input.                       |
+  | `cmd_roll_source`        | Provides roll command input.                        |
+  | `cmd_vel_source`         | Provides velocity command input.                    |
+  | `dummy_heightmap_source` | Provides dummy heightmap observations.              |
+  | `dummy_odometry_source`  | Provides dummy odometry observations.               |
+  | `estimator`              | Infers the neural network state estimator.          |
+  | `field_ops`              | Applies generic field operations.                   |
+  | `joint_reordering`       | Reorders joint states.                              |
+  | `neuro`                  | Runs a generic neural module from configured I/O.   |
+  | `proprioceptor`          | Provides proprioceptive observations.               |
+  | `roll_pitch_source`      | Provides the roll and pitch observations.           |
+  | `time_step_source`       | Provides monotonically increasing timestep index.   |
+
+  These are module factory names. Auto-resolved field sources still use field names such as
+  `cmd_vel`, `roll_pitch`, `time_step`, `heightmap`, and `base_global_pos`.
 
 ### Control Commands
 
@@ -118,5 +122,5 @@ produce or process data segments identified by FieldId.
 2. Ensures the `action` field has a source, then resolves dependencies by creating modules from unresolved requirements.
 3. Resolves execution order from declared `requirements`/`provisions`, and reports circular or duplicate providers.
 4. On `reset()`, calls `reset()` on each resolved module.
-5. In each `act()` step, sequentially invokes `update()` and `postUpdate()`, takes `action` from the field map, and
+5. In each `act()` step, sequentially invokes `update()` and `commit()`, takes `action` from the field map, and
   sends it to the robot through the `Actuator`.

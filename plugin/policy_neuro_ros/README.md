@@ -4,7 +4,7 @@ StepIt plugin for ROS-based modules that subscribe ROS topics and feed data into
 
 ### Provided Factories
 
-`stepit::policy_neuro::Module`:
+`stepit::neuro_policy::Module`:
   - `cmd_height_subscriber`: subscribes to a ROS topic of one of the following types and provides command height field (`cmd_height`):
     - `std_msgs/Float32`,
     - `geometry_msgs/Twist` (`linear.z` component),
@@ -20,6 +20,7 @@ StepIt plugin for ROS-based modules that subscribe ROS topics and feed data into
   - `cmd_vel_subscriber`: subscribes to a ROS topic of one of the following types and provides command velocity fields (`cmd_vel`) with `linear.x`, `linear.y`, and `angular.z` components:
     - `geometry_msgs/Twist`,
     - `geometry_msgs/TwistStamped`.
+  - `field_subscriber`: subscribes to configured `std_msgs/Float32MultiArray` topics and provides the named fields declared in its config map.
   - `heightmap_subscriber`: subscribes to an elevation map topic of type `grid_map_msgs/GridMap` and a pose topic of one of the following types, sample elevation and uncertainty values around the robot, and provide corresponding fields (`heightmap` / `heightmap_uncertainty`):
     - `geometry_msgs/PoseStamped`,
     - `geometry_msgs/PoseWithCovarianceStamped`,
@@ -82,4 +83,4 @@ StepIt plugin for ROS-based modules that subscribe ROS topics and feed data into
 
 ### Notes
 
-- The `CmdVelSubscriber` will be used as the preferred source for the `cmd_vel` field, as it has a higher priority than the `CmdHeightSource` in the `policy_neuro` plugin. To completely disable the subscription, specify `cmd_vel` in the `module` item of the policy configuration to use the `CmdHeightSource` class, which will prevent it from searching for other sources. Do the same for `cmd_height`, `cmd_pitch`, and `cmd_roll` if needed.
+- Auto-resolution prefers `cmd_vel_subscriber` over the base `cmd_vel_source` field source because it has a higher priority. To force the non-ROS source, explicitly add `cmd_vel_source` to `modules:`. Likewise, use `cmd_roll_source`, `cmd_pitch_source`, `cmd_height_source`, or `dummy_heightmap_source` to bypass the ROS subscribers for those fields.
