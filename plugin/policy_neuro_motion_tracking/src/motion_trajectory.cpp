@@ -13,74 +13,120 @@ MotionTrajectory::MotionTrajectory(const NeuroPolicySpec &policy_spec, const Mod
   STEPIT_ASSERT(not path_.empty(), "'path' cannot be empty.");
   path_ = (path_[0] == '/') ? path_ : joinPaths(policy_spec.home_dir, path_);
 
-  auto dataloader_factory = yml::readIf<std::string>(config_, "dataloader_factory", "");
-  data_                   = DataLoader::make(dataloader_factory, path_);
+  const auto dataloader_factory = yml::readIf<std::string>(config_, "dataloader_factory", "");
+  data_                         = DataLoader::make(dataloader_factory, path_);
 
-  auto default_offsets = yml::readIf(config_, "offsets", std::vector<std::int64_t>{0});
+  const auto default_offsets = yml::readIf(config_, "offsets", std::vector<std::int64_t>{0});
   STEPIT_ASSERT(not default_offsets.empty(), "'offsets' cannot be empty.");
 
+  checkFps(policy_spec.control_freq);
+
+  const auto field_nodes = config_["field"];
+  STEPIT_ASSERT(field_nodes.IsDefined(), "Missing 'field' in '{}'.", config_filename_);
+  STEPIT_ASSERT(field_nodes.IsSequence(), "Expected 'field' to be a sequence.");
+  for (const auto &node : field_nodes) {
+    FieldView field_spec;
+    initField(node, field_spec);
+    if (field_spec.offsets.empty()) field_spec.offsets = default_offsets;
+    fields_.push_back(std::move(field_spec));
+  }
+
+  STEPIT_ASSERT(num_frames_ > 0, "Loaded trajectory '{}' with 0 frames.", path_);
+  STEPIT_DBUG("Loaded trajectory with {} frames and {} fields from '{}'.", num_frames_, fields_.size(), path_);
+}
+
+void MotionTrajectory::checkFps(std::size_t control_freq) {
   if (data_->hasKey("fps")) {
     const auto &fps = (*data_)["fps"];
     STEPIT_ASSERT(product(fps.shape) == 1, "Expected 'fps' in '{}' to contain exactly one element.", path_);
     std::size_t fps_value = 0;
     if (fps.dtype == "float64") {
-      fps_value = static_cast<std::size_t>(std::round(*fps.data<double>()));
+      fps_value = static_cast<std::size_t>(std::round(fps.at<double>(0)));
     } else if (fps.dtype == "float32") {
-      fps_value = static_cast<std::size_t>(std::round(*fps.data<float>()));
+      fps_value = static_cast<std::size_t>(std::round(fps.at<float>(0)));
     } else if (fps.dtype == "int32") {
-      fps_value = static_cast<std::size_t>(*fps.data<int32_t>());
+      fps_value = static_cast<std::size_t>(fps.at<int32_t>(0));
     } else if (fps.dtype == "int64") {
-      fps_value = static_cast<std::size_t>(*fps.data<int64_t>());
+      fps_value = static_cast<std::size_t>(fps.at<int64_t>(0));
     } else {
       STEPIT_THROW("Expected 'fps' in '{}' to have dtype 'float32', 'float64', 'int32', or 'int64', but got '{}'.",
                    path_, fps.dtype);
     }
-    STEPIT_ASSERT(fps_value == policy_spec.control_freq,
-                  "FPS in '{}' ({}) does not match control frequency in policy spec ({}).", path_, fps_value,
-                  policy_spec.control_freq);
+    STEPIT_ASSERT(fps_value == control_freq, "'fps' in '{}' ({}) does not match the control frequency ({}).", path_,
+                  fps_value, control_freq);
+  }
+}
+
+void MotionTrajectory::initField(const YAML::Node &node, FieldView &field) {
+  STEPIT_ASSERT(node.IsMap(), "Expected each field to be a map.");
+  const auto name = yml::readAs<std::string>(node, "name");
+  const auto key  = yml::readAs<std::string>(node, "key");
+  STEPIT_ASSERT(data_->hasKey(key), "Key '{}' not found in '{}'.", key, path_);
+  const auto &source = (*data_)[key];
+  const auto &shape  = source.shape;
+  STEPIT_ASSERT(shape.size() >= 1, "Expected array for key '{}' to have at least 1 dimension.", key);
+  STEPIT_ASSERT(source.dtype == "float32" or source.dtype == "float64",
+                "Expected array '{}' to have dtype 'float32' or 'float64', but got '{}'.", key, source.dtype);
+
+  if (num_frames_ == 0) {
+    num_frames_ = shape[0];
+  } else if (num_frames_ != shape[0]) {
+    STEPIT_THROW("Arrays in '{}' have different frame counts.", path_);
   }
 
-  STEPIT_ASSERT(config_["field"].IsDefined(), "Missing 'field' in '{}'.", config_filename_);
-  STEPIT_ASSERT(config_["field"].IsSequence(), "Expected 'field' to be a sequence.");
-  for (const auto &node : config_["field"]) {
-    STEPIT_ASSERT(node.IsMap(), "Expected each field to be a map.");
-    auto field_name = yml::readAs<std::string>(node, "name");
-    auto key_name   = yml::readAs<std::string>(node, "key");
-    auto offsets    = yml::readIf(node, "offsets", default_offsets);
-    STEPIT_ASSERT(not offsets.empty(), "Offsets for field '{}' cannot be empty.", field_name);
-    STEPIT_ASSERT(data_->hasKey(key_name), "Key '{}' not found in '{}'.", key_name, path_);
-
-    const auto &array = (*data_)[key_name];
-    const auto &shape = array.shape;
-    STEPIT_ASSERT(shape.size() >= 1, "Expected array for key '{}' to have at least 1 dimension.", key_name);
-    STEPIT_ASSERT(array.dtype == "float32" or array.dtype == "float64",
-                  "Expected array '{}' to have dtype 'float32' or 'float64', but got '{}'.", key_name, array.dtype);
-    if (num_frames_ == 0) {
-      num_frames_ = shape[0];
-    } else if (num_frames_ != shape[0]) {
-      STEPIT_THROW("Arrays in '{}' have different frame counts.", path_);
+  std::size_t frame_size = std::accumulate(shape.begin() + 1, shape.end(), 1UL, std::multiplies<std::size_t>());
+  std::vector<std::size_t> indices;
+  if (yml::hasValue(node, "indices")) {
+    const auto indices_node = node["indices"];
+    STEPIT_ASSERT(indices_node.IsSequence() and indices_node.size() > 0,
+                  "'indices' for field '{}' must be a non-empty sequence.", name);
+    yml::setTo(indices_node, indices);
+    STEPIT_ASSERT(
+        std::all_of(indices.begin(), indices.end(), [&frame_size](std::size_t index) { return index < frame_size; }),
+        "'indices' of field '{}' should be in the range [0, {}).", name, frame_size);
+  } else {
+    std::size_t start = yml::readIf<std::size_t>(node, "start", 0UL);
+    std::size_t end   = yml::readIf<std::size_t>(node, "end", frame_size);
+    STEPIT_ASSERT(start < frame_size, "Start index {} is out of range [0, {}) for field '{}' (key '{}').", start,
+                  frame_size, name, key);
+    STEPIT_ASSERT(end <= frame_size, "End index {} is out of range (0, {}] for field '{}' (key '{}').", end, frame_size,
+                  name, key);
+    STEPIT_ASSERT(end > start, "Slice range [start={}, end={}) for field '{}' is invalid.", start, end, name);
+    for (auto index = start; index < end; ++index) {
+      indices.push_back(static_cast<std::size_t>(index));
     }
-
-    std::size_t frame_size = std::accumulate(shape.begin() + 1, shape.end(), 1UL, std::multiplies<std::size_t>());
-    std::size_t field_size = frame_size * offsets.size();
-    if (yml::hasValue(node, "size")) {
-      auto specified_size = yml::readAs<std::size_t>(node, "size");
-      STEPIT_ASSERT(specified_size == field_size,
-                    "Field size specified ({}) does not match the stacked size ({}) of array '{}'.", specified_size,
-                    field_size, key_name);
-    }
-    key_names_.push_back(key_name);
-    frame_sizes_.push_back(frame_size);
-    frame_offsets_.push_back(std::move(offsets));
-
-    field_ids_.push_back(registerProvision(field_name, static_cast<FieldSize>(field_size)));
-    field_names_.push_back(field_name);
-    field_sizes_.push_back(field_size);
-    field_buffers_.emplace_back(static_cast<Eigen::Index>(field_size));
   }
 
-  STEPIT_ASSERT(num_frames_ > 0, "Loaded trajectory '{}' with 0 frames.", path_);
-  STEPIT_DBUG("Loaded trajectory with {} frames and {} fields from '{}'.", num_frames_, field_names_.size(), path_);
+  yml::setIf(node, "offsets", field.offsets);
+  STEPIT_ASSERT(not field.offsets.empty(), "Offsets for field '{}' cannot be empty.", name);
+  field.frame_size = indices.size();
+  field.field_size = field.frame_size * field.offsets.size();
+  if (yml::hasValue(node, "size")) {
+    const auto declared_size = yml::readAs<std::size_t>(node, "size");
+    STEPIT_ASSERT(declared_size == field.field_size,
+                  "Field size specified ({}) does not match the stacked size ({}) of field '{}' (key '{}').",
+                  declared_size, field.field_size, name, key);
+  }
+
+  field.source.resize(num_frames_);
+  for (std::size_t frame{}; frame < num_frames_; ++frame) {
+    const auto source_offset = frame * frame_size;
+    auto &frame_data         = field.source[frame];
+    frame_data.resize(static_cast<Eigen::Index>(field.frame_size));
+
+    if (source.dtype == "float64") {
+      for (std::size_t i{}; i < indices.size(); ++i) {
+        frame_data[static_cast<Eigen::Index>(i)] = static_cast<float>(source.at<double>(source_offset + indices[i]));
+      }
+    } else {
+      for (std::size_t i{}; i < indices.size(); ++i) {
+        frame_data[static_cast<Eigen::Index>(i)] = source.at<float>(source_offset + indices[i]);
+      }
+    }
+  }
+
+  field.field_id = registerProvision(name, static_cast<FieldSize>(field.field_size));
+  field.buffer.resize(static_cast<Eigen::Index>(field.field_size));
 }
 
 bool MotionTrajectory::reset() {
@@ -89,36 +135,19 @@ bool MotionTrajectory::reset() {
 }
 
 bool MotionTrajectory::update(const LowState &low_state, ControlRequests &requests, FieldMap &context) {
-  for (std::size_t i{}; i < field_ids_.size(); ++i) {
-    const auto &key          = key_names_[i];
-    const auto &offsets      = frame_offsets_[i];
-    const auto field_id      = field_ids_[i];
-    const auto field_size    = field_sizes_[i];
-    const auto frame_size    = frame_sizes_[i];
-    const auto frame_idx     = static_cast<std::int64_t>(frame_idx_);
-    const auto max_frame_idx = static_cast<std::int64_t>(num_frames_ - 1);
+  const auto frame_idx     = static_cast<std::int64_t>(frame_idx_);
+  const auto max_frame_idx = static_cast<std::int64_t>(num_frames_ - 1);
+  for (auto &field : fields_) {
+    const auto slice_size = static_cast<Eigen::Index>(field.frame_size);
+    auto &buffer          = field.buffer;
 
-    const auto &array = (*data_)[key];
-    auto &buffer      = field_buffers_[i];
-
-    Eigen::Index buffer_offset = 0;
-    for (auto frame_offset : offsets) {
-      auto sample_frame = static_cast<std::size_t>(clamp(frame_idx + frame_offset, std::int64_t{0}, max_frame_idx));
-      std::size_t data_offset = sample_frame * frame_size;
-      rArrXf buffer_segment   = buffer.segment(buffer_offset, static_cast<Eigen::Index>(frame_size));
-      if (array.dtype == "float64") {
-        buffer_segment = array.segment<double>(data_offset, frame_size).cast<float>();
-      } else {
-        buffer_segment = array.segment<float>(data_offset, frame_size);
-      }
-      buffer_offset += static_cast<Eigen::Index>(frame_size);
+    Eigen::Index write_offset = 0;
+    for (const auto frame_offset : field.offsets) {
+      buffer.segment(write_offset, slice_size) = field.source[static_cast<std::size_t>(
+          clamp(frame_idx + frame_offset, std::int64_t{0}, max_frame_idx))];
+      write_offset += slice_size;
     }
-    STEPIT_ASSERT(buffer_offset == buffer.size(), "Stacked field size ({}) does not match the buffer size ({}).",
-                  buffer_offset, buffer.size());
-
-    STEPIT_ASSERT(field_size == static_cast<std::size_t>(buffer.size()),
-                  "Registered field size ({}) does not match the buffer size ({}).", field_size, buffer.size());
-    context[field_id] = buffer;
+    context[field.field_id] = field.buffer;
   }
 
   if (frame_idx_ < num_frames_ - 1) ++frame_idx_;

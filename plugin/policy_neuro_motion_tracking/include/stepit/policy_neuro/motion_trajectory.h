@@ -1,6 +1,7 @@
 #ifndef STEPIT_NEURO_POLICY_MOTION_TRAJECTORY_H_
 #define STEPIT_NEURO_POLICY_MOTION_TRAJECTORY_H_
 
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -19,16 +20,22 @@ class MotionTrajectory : public Module {
   bool update(const LowState &low_state, ControlRequests &requests, FieldMap &context) override;
 
  private:
+  struct FieldView {
+    std::vector<ArrXf> source;
+    std::size_t frame_size{};
+    std::size_t field_size{};
+    std::vector<std::int64_t> offsets;
+    FieldId field_id{};
+    ArrXf buffer;
+  };
+
+  void checkFps(std::size_t control_freq);
+  void initField(const YAML::Node &node, FieldView &field_spec);
+
   std::string path_;
-  std::unique_ptr<field::DataLoader> data_;
+  std::unique_ptr<DataLoader> data_;
   std::size_t num_frames_{};
-  std::vector<std::string> key_names_;
-  std::vector<std::size_t> frame_sizes_;
-  std::vector<std::vector<std::int64_t>> frame_offsets_;
-  FieldIdVec field_ids_;
-  std::vector<std::string> field_names_;
-  std::vector<std::size_t> field_sizes_;
-  std::vector<ArrXf> field_buffers_;
+  std::vector<FieldView> fields_;
 
   std::size_t frame_idx_{};
 };

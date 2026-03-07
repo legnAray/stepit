@@ -6,7 +6,10 @@ offsets: [0]                           # [Optional] Sequence[Int], frame offsets
 field:                                 # Sequence[Dict], Sequence of mappings defining the fields
   - name: "target_joint_pos"           # String, name of the field
     key: "joint_pos"                   # String, key in the motion source corresponding to this field
-    size: 29                           # [Optional] Int, the stacked field size (= single-frame size * len(offsets))
+    size: 29                           # [Optional] Int, stacked size (= selected single-frame size * len(offsets))
+    # start: 0                         # [Optional] Int, inclusive start index within one frame
+    # end: 29                          # [Optional] Int, exclusive end index within one frame
+    # indices: [0, 2, 4]               # [Optional] Sequence[Int], explicit indices within one frame
     # offsets: [0, 1, 2]               # [Optional] Sequence[Int], overrides the top-level offsets for this field
   - name: "target_joint_vel"
     key: "joint_vel"

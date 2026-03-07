@@ -33,6 +33,18 @@ struct NdArray {
     return reinterpret_cast<const T *>(ptr);
   }
 
+  std::size_t numel() const { return nbytes / itemsize; }
+
+  template <typename T>
+  T &at(std::size_t index) {
+    return data<T>()[index];
+  }
+
+  template <typename T>
+  const T &at(std::size_t index) const {
+    return data<T>()[index];
+  }
+
   template <typename T>
   Eigen::Map<Eigen::Array<T, -1, 1>> segment(std::size_t offset, std::size_t size) {
     return Eigen::Map<Eigen::Array<T, -1, 1>>(data<T>() + offset, size, 1);
