@@ -38,9 +38,9 @@ bool FieldOps::update(const LowState &, ControlRequests &, FieldMap &context) {
   return true;
 }
 
-void FieldOps::commit(const FieldMap &context) {
+void FieldOps::postStep(const FieldMap &context) {
   for (auto &operation : operations_) {
-    operation->commit(context);
+    operation->postStep(context);
   }
 }
 

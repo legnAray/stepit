@@ -44,6 +44,13 @@ class Policy : public Interface<Policy, const RobotSpec & /* robot_spec */, cons
    */
   virtual bool act(const LowState &low_state, ControlRequests &requests, LowCmd &cmd) = 0;
   /**
+   * @brief Runs an optional post-act phase after the latest low-level command has been handed off.
+   *
+   * Use this phase for non-critical work such as state publication so the control path can prioritize
+   * `act()` and low-level command updates.
+   */
+  virtual void postAct() {}
+  /**
    * @brief Shuts down the policy, releasing resources and performing any necessary finalization.
    */
   virtual void exit() = 0;

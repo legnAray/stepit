@@ -132,35 +132,42 @@ bool NeuroPolicy::reset() {
   }
 
   num_steps_ = 0;
+  context_.clear();
   return true;
 }
 
 bool NeuroPolicy::act(const LowState &low_state, ControlRequests &requests, LowCmd &cmd) {
-  FieldMap context;
+  context_.clear();
   for (const auto &module : resolved_modules_) {
-    if (not module->update(low_state, requests, context)) {
+    if (not module->update(low_state, requests, context_)) {
       STEPIT_CRIT("Failed to update '{}'.", getTypeName(*module));
+      context_.clear();
       return false;
     }
   }
-  for (const auto &module : resolved_modules_) {
-    module->commit(context);
-  }
-  action_ = context.at(action_id_);
+  action_ = context_.at(action_id_);
   actuator_->setLowCmd(cmd, action_);
 
+  ++num_steps_;
+  return true;
+}
+
+void NeuroPolicy::postAct() {
+  for (const auto &module : resolved_modules_) {
+    module->postStep(context_);
+  }
+
   if (publish_fields_) {
-    for (const auto &it : context) {
+    for (const auto &it : context_) {
       if (published_fields_.empty() or published_fields_.find(it.first) != published_fields_.end()) {
         publisher::publishArray("field/" + getFieldName(it.first), it.second);
       }
     }
   }
-  ++num_steps_;
-  return true;
 }
 
 void NeuroPolicy::exit() {
+  context_.clear();
   for (const auto &module : resolved_modules_) module->exit();
 }
 

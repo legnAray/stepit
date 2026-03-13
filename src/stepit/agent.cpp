@@ -478,6 +478,7 @@ bool Agent::runPolicy() {
     }
     policy_requests_.clear();
     communication_.setLowCmd(low_cmd_);
+    active_policy_->postAct();
     return true;
   }
 

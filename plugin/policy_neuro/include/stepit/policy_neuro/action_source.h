@@ -12,7 +12,7 @@ class ActionHistory : public Module {
   void init() override;
   bool reset() override;
   bool update(const LowState &low_state, ControlRequests &requests, FieldMap &context) override;
-  void commit(const FieldMap &context) override;
+  void postStep(const FieldMap &context) override;
 
  private:
   FieldId action_id_{};

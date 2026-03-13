@@ -231,7 +231,7 @@ bool HistoryOperator::update(FieldMap &context) {
   return true;
 }
 
-void HistoryOperator::commit(const FieldMap &context) {
+void HistoryOperator::postStep(const FieldMap &context) {
   if (not include_current_frame_) {
     auto it = context.find(source_id_);
     STEPIT_ASSERT(it != context.end(), "Field '{}' not found at runtime.", getFieldName(source_id_));

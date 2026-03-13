@@ -122,5 +122,7 @@ produce or process data segments identified by FieldId.
 2. Ensures the `action` field has a source, then resolves dependencies by creating modules from unresolved requirements.
 3. Resolves execution order from declared `requirements`/`provisions`, and reports circular or duplicate providers.
 4. On `reset()`, calls `reset()` on each resolved module.
-5. In each `act()` step, sequentially invokes `update()` and `commit()`, takes `action` from the field map, and
-  sends it to the robot through the `Actuator`.
+5. In each `act()` step, sequentially invokes `update()`, takes `action` from the field map, and sends it to the
+   robot through the `Actuator`.
+6. After `act()` returns and the low-level command is handed off, runs a post-act phase for module state latching
+   and slower work such as publishing configured fields.

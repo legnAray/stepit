@@ -33,7 +33,7 @@ class Module : public Node,
   virtual void init() {}
   virtual bool reset() { return true; }
   virtual bool update(const LowState &low_state, ControlRequests &requests, FieldMap &context) = 0;
-  virtual void commit(const FieldMap &context) {}
+  virtual void postStep(const FieldMap &context) {}
   virtual void exit() {}
 
   const std::string &name() const { return name_; }

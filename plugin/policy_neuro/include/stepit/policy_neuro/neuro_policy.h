@@ -18,6 +18,7 @@ class NeuroPolicy : public Policy {
   const PolicySpec &getSpec() const override { return spec_; }
   bool reset() override;
   bool act(const LowState &low_state, ControlRequests &requests, LowCmd &cmd) override;
+  void postAct() override;
   void exit() override;
 
  private:
@@ -39,7 +40,8 @@ class NeuroPolicy : public Policy {
   std::set<FieldId> unresolved_fields_;
 
   std::size_t num_steps_{0};
-  ArrXf observation_, action_;
+  FieldMap context_;
+  ArrXf action_;
 };
 }  // namespace neuro_policy
 }  // namespace stepit

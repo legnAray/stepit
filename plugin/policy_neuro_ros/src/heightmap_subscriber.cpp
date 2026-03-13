@@ -78,6 +78,8 @@ bool HeightmapSubscriber::reset() {
   subscriber_enabled_ = default_subscriber_enabled_;
   map_timeout_        = false;
   loc_timeout_        = false;
+  sample_msg_ready_   = false;
+  sample_z_offset_    = 0.0F;
   error_msg_.clear();
   subscribing_status_ = publisher::StatusRegistration::make("Policy/Heightmap/Subscribing");
   error_msg_status_   = publisher::StatusRegistration::make("Policy/Heightmap/ErrorMessage");
@@ -92,9 +94,8 @@ bool HeightmapSubscriber::update(const LowState &low_state, ControlRequests &req
     handleControlRequest(std::move(request));
   }
 
-  bool status = checkAllReady();
-  subscribing_status_->update(subscriber_enabled_);
-  error_msg_status_->update(error_msg_);
+  sample_msg_ready_ = false;
+  bool status       = checkAllReady();
 
   if (not status) {
     elevation_.setZero();
@@ -103,6 +104,8 @@ bool HeightmapSubscriber::update(const LowState &low_state, ControlRequests &req
   }
   {
     std::lock_guard<std::mutex> lock(msg_mtx_);
+    sample_msg_.header = loc_msg_.header;
+    sample_z_offset_   = static_cast<float>(map_info_.pose.position.z);
     Vec2f pos{loc_msg_.pose.position.x, loc_msg_.pose.position.y};
     const auto &orn = loc_msg_.pose.orientation;
     Eigen::Rotation2Df rot(Quatf(orn.w, orn.x, orn.y, orn.z).eulerAngles().z());
@@ -130,19 +133,30 @@ bool HeightmapSubscriber::update(const LowState &low_state, ControlRequests &req
     float &elevation = elevation_[static_cast<Eigen::Index>(i)];
     if (not std::isfinite(elevation)) elevation = mean;
   }
-  if (publish_samples_) {
+  if (elevation_zero_mean_) {
+    elevation_ -= mean;
+    sample_z_offset_ += mean;
+  }
+  sample_msg_ready_ = publish_samples_;
+  return DummyHeightmapSource::update(low_state, requests, context);
+}
+
+void HeightmapSubscriber::postStep(const FieldMap &) {
+  subscribing_status_->update(subscriber_enabled_);
+  error_msg_status_->update(error_msg_);
+
+  if (sample_msg_ready_) {
     sensor_msgs::PointCloud2Iterator<float> iter_x(sample_msg_, "x");
     sensor_msgs::PointCloud2Iterator<float> iter_y(sample_msg_, "y");
     sensor_msgs::PointCloud2Iterator<float> iter_z(sample_msg_, "z");
     sensor_msgs::PointCloud2Iterator<uint32_t> iter_rgb(sample_msg_, "rgb");
-    const auto &map_pos = map_info_.pose.position;
 
     for (std::size_t i{}; i < numHeightSamples(); ++i) {
       const auto &coord = global_sample_coords_[i];
 
       *iter_x    = coord.x();
       *iter_y    = coord.y();
-      *iter_z    = elevation_[static_cast<Eigen::Index>(i)] + static_cast<float>(map_pos.z);
+      *iter_z    = elevation_[static_cast<Eigen::Index>(i)] + sample_z_offset_;
       uint32_t r = std::min<uint32_t>(uncertainty_[static_cast<Eigen::Index>(i)] * 20 * 255, 255);
       uint32_t g = 255 - r;
       uint32_t b = 0;
@@ -153,11 +167,8 @@ bool HeightmapSubscriber::update(const LowState &low_state, ControlRequests &req
       ++iter_z;
       ++iter_rgb;
     }
-    sample_msg_.header = loc_msg_.header;
     sample_pub_.publish(sample_msg_);
   }
-  if (elevation_zero_mean_) elevation_ -= mean;
-  return DummyHeightmapSource::update(low_state, requests, context);
 }
 
 void HeightmapSubscriber::exit() {

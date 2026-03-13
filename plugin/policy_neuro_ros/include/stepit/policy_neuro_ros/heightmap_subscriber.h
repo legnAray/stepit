@@ -20,6 +20,7 @@ class HeightmapSubscriber : public DummyHeightmapSource {
   HeightmapSubscriber(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec);
   bool reset() override;
   bool update(const LowState &low_state, ControlRequests &requests, FieldMap &context) override;
+  void postStep(const FieldMap &context) override;
   void exit() override;
 
  private:
@@ -59,6 +60,8 @@ class HeightmapSubscriber : public DummyHeightmapSource {
   std::atomic<bool> loc_received_{false};
   bool map_timeout_{false};
   bool loc_timeout_{false};
+  bool sample_msg_ready_{false};
+  float sample_z_offset_{0.0F};
   std::string error_msg_;
   grid_map::GridMap map_msg_;
   grid_map_msgs::GridMapInfo map_info_;
