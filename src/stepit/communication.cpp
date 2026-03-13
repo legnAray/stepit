@@ -1,7 +1,7 @@
-#include <cerrno>
 #include <pthread.h>
 #include <sched.h>
 #include <unistd.h>
+#include <cerrno>
 #include <cmath>
 
 #include <stepit/communication.h>
@@ -9,16 +9,15 @@
 
 namespace stepit {
 /**
- * @brief Sets the CPU affinity for a specific thread or process.
+ * Sets the CPU affinity for a specific thread or process.
  *
- * This function attempts to pin the execution of the thread or process identified by `pid`
- * to the specific CPU core identified by `cpuid`.
+ * This function attempts to pin the execution of the thread or process
+ * identified by `pid` to the CPU core identified by `cpuid`.
  *
- * @param pid The process ID (or thread ID) to set affinity for. If 0, the calling thread is used.
- * @param cpuid The logical ID of the CPU core to bind the thread to.
- *
- * @return The CPU ID actually set if successful, or -1 if the operation failed or the
- *         requested CPU ID was invalid.
+ * @param pid Process ID or thread ID to configure. If 0, the calling thread is used.
+ * @param cpuid Logical CPU ID to bind the thread to.
+ * @return CPU ID actually set on success, or `-1` if the operation failed or
+ * the requested CPU ID was invalid.
  */
 int setThreadCPU(pid_t pid, long cpuid) {
   long num_cpus = sysconf(_SC_NPROCESSORS_CONF);
@@ -52,13 +51,15 @@ int setThreadCPU(pid_t pid, long cpuid) {
 }
 
 /**
- * @brief Sets the scheduling policy of a specific thread to real-time with maximum priority.
+ * Sets a thread scheduling policy to real time with maximum priority.
  *
- * This function attempts to change the scheduling policy of the provided thread to SCHED_RR
- * and sets its priority to the maximum value allowed for that policy.
+ * This function attempts to change the scheduling policy of the provided
+ * thread to `SCHED_RR` and sets its priority to the maximum value allowed
+ * for that policy.
  *
- * @param thread The POSIX thread identifier (pthread_t) of the thread to configure.
- * @return int The new scheduling priority of the thread on success, or -1 if setting the parameters failed.
+ * @param thread POSIX thread identifier to configure.
+ * @return New scheduling priority on success, or `-1` if setting the
+ * parameters failed.
  */
 int setThreadRT(pthread_t thread) {
   int policy = SCHED_RR;

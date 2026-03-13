@@ -9,18 +9,72 @@
 #include <stepit/robot.h>
 
 namespace stepit {
+/**
+ * Abstract publishing interface for status, low-level state, and array outputs.
+ *
+ * Implementations expose process-wide publishing backends through the global
+ * registry and singleton accessors.
+ */
 class Publisher : public Interface<Publisher> {
  public:
+  /** Returns the process-wide publisher instance. */
   static Publisher &instance();
 
+  /**
+   * Checks whether a named status entry exists.
+   *
+   * @param name Status key to look up.
+   * @return True if the named status exists; otherwise, false.
+   */
   bool hasStatus(const std::string &name) const;
+
+  /**
+   * Registers a named status entry.
+   *
+   * @param name Status key to register.
+   */
   void registerStatus(const std::string &name);
+
+  /**
+   * Updates the current value of a named status entry.
+   *
+   * @param name Status key to update.
+   * @param value New string value for the status entry.
+   */
   void updateStatus(const std::string &name, const std::string &value);
+
+  /**
+   * Removes a named status entry.
+   *
+   * @param name Status key to remove.
+   */
   void removeStatus(const std::string &name);
+
+  /**
+   * Returns a snapshot of all registered status entries.
+   *
+   * @return Copy of the current status map.
+   */
   std::map<std::string, std::string> getStatusSnapshot() const;
 
+  /** Publishes the current status snapshot. */
   virtual void publishStatus() {}
+
+  /**
+   * Publishes the latest low-level robot state and command.
+   *
+   * @param spec Robot specification associated with the data.
+   * @param state Latest low-level robot state.
+   * @param cmd Latest low-level command buffer.
+   */
   virtual void publishLowLevel(const RobotSpec &spec, const LowState &state, const LowCmd &cmd) {}
+
+  /**
+   * Publishes a named numeric array.
+   *
+   * @param name Array channel name.
+   * @param arr Array view to publish.
+   */
   virtual void publishArray(const std::string &name, cArrXf arr) {}
 
  protected:
@@ -29,43 +83,78 @@ class Publisher : public Interface<Publisher> {
 };
 
 namespace publisher {
-// Helper accessors
-
+/** Runtime filter that enables or disables individual publisher pathways. */
 struct Filter {
+  /** Loads filter configuration from the environment. */
   Filter();
+  /** Whether status publishing is enabled. */
   bool publish_status{true};
+  /** Whether low-level publishing is enabled. */
   bool publish_low_level{true};
+  /** Whether array publishing is enabled. */
   bool publish_array{true};
 };
+/** Process-wide publishing filter. */
 extern const Filter g_filter;
+
+/** Returns the process-wide publisher instance. */
 inline Publisher &publisher() { return Publisher::instance(); }
+
+/** Returns whether a named status entry exists. */
 inline bool hasStatus(const std::string &name) { return publisher().hasStatus(name); }
+
+/** Updates a named status entry with a string value. */
 inline void updateStatus(const std::string &name, const std::string &value) { publisher().updateStatus(name, value); }
+
+/** Updates a named status entry with a C-string value. */
 inline void updateStatus(const std::string &name, const char *value) { publisher().updateStatus(name, value); }
+
+/** Updates a named status entry using `std::to_string(value)`. */
 template <typename T>
 void updateStatus(const std::string &name, const T &value) {
   updateStatus(name, std::to_string(value));
 }
+
+/** Removes a named status entry. */
 inline void removeStatus(const std::string &name) { publisher().removeStatus(name); }
 
+/** Publishes the current status snapshot if status publishing is enabled. */
 inline void publishStatus() {
   if (g_filter.publish_status) publisher().publishStatus();
 }
+
+/** Publishes low-level data if low-level publishing is enabled. */
 inline void publishLowLevel(const RobotSpec &spec, const LowState &low_state, const LowCmd &low_cmd) {
   if (g_filter.publish_low_level) publisher().publishLowLevel(spec, low_state, low_cmd);
 }
+
+/** Publishes an array if array publishing is enabled. */
 inline void publishArray(const std::string &name, cArrXf arr) {
   if (g_filter.publish_array) publisher().publishArray(name, arr);
 }
 
+/**
+ * RAII helper that registers and unregisters one named status entry.
+ */
 class StatusRegistration {
  public:
+  /**
+   * Registers a named status entry.
+   *
+   * @param name Status key to manage.
+   */
   StatusRegistration(const std::string &name);
   ~StatusRegistration();
   StatusRegistration(const StatusRegistration &)            = delete;
   StatusRegistration &operator=(const StatusRegistration &) = delete;
   StatusRegistration(StatusRegistration &&other) noexcept;
   StatusRegistration &operator=(StatusRegistration &&other) noexcept;
+
+  /**
+   * Updates the managed status entry.
+   *
+   * @param value Value converted through `updateStatus`.
+   */
   template <typename T>
   void update(const T &value) {
     updateStatus(name_, value);

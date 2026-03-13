@@ -18,13 +18,13 @@ class PluginManager {
  private:
   static std::vector<std::string> getPluginDirs(const std::string &executable_path);
   /**
-   * @brief Checks if the given filename conforms to the expected plugin naming convention.
+   * Checks whether the given filename matches the expected plugin naming convention.
    *
    * A valid plugin filename must start with "libstepit_plugin_", end with ".so",
-   * and have a non-empty name between the prefix and suffix.
+   * and contain a non-empty name between the prefix and suffix.
    *
-   * @param filename The name of the file to validate.
-   * @return True if the filename is a valid plugin name, false otherwise.
+   * @param filename File name to validate.
+   * @return True if the filename is a valid plugin name; otherwise, false.
    */
   static bool isValidPlugin(const std::string &filename);
   static std::string getPluginName(const std::string &plugin);

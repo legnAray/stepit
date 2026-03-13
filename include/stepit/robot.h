@@ -10,97 +10,87 @@
 #include <stepit/utils.h>
 
 namespace stepit {
-/**
- * @brief Represents the feedback state of a single motor.
- */
+/** Feedback state of one motor. */
 struct MotorState {
-  /* Current joint angle (unit: rad) */
+  /** Current joint angle in radians. */
   float q;
-  /* Current joint velocity (unit: rad/s) */
+  /** Current joint velocity in radians per second. */
   float dq;
-  /* Current estimated output torque (unit: N⋅m) */
+  /** Current estimated output torque in newton-meters. */
   float tor;
 };
 
-/**
- * @class LowState
- * @brief Represents the whole-body low-level state feedback from the robot.
- */
+/** Whole-body low-level state feedback from the robot. */
 struct LowState {
   LowState() = default;
   LowState(std::size_t dof, std::size_t num_legs) : motor_state(dof), foot_force(num_legs) {}
 
   struct IMU {
-    /* Quaternion representation of orientation in (w,x,y,z) format */
+    /** Orientation quaternion in `(w, x, y, z)` order. */
     std::array<float, 4> quaternion{1.0, 0.0, 0.0, 0.0};
-    /* Angular velocity (unit: rad/s) */
+    /** Angular velocity in radians per second. */
     std::array<float, 3> gyroscope{};
-    /* Linear acceleration (unit: m/(s^2)) */
+    /** Linear acceleration in meters per second squared. */
     std::array<float, 3> accelerometer{};
-    /* Euler angles (roll, pitch, yaw) (unit: rad) */
+    /** Euler angles `(roll, pitch, yaw)` in radians. */
     std::array<float, 3> rpy{};
   } imu;
 
-  /* Whole-body joint states */
+  /** Whole-body joint states. */
   std::vector<MotorState> motor_state;
-  /* Force sensed at each foot */
+  /** Force sensed at each foot. */
   std::vector<float> foot_force;
-  /* System tick count */
+  /** System tick count. */
   uint32_t tick{};
 };
 
-/**
- * @class MotorCmd
- * @brief Represents the control command for a single motor.
- */
+/** Control command for one motor. */
 struct MotorCmd {
-  /* Target joint angle (unit: rad) */
+  /** Target joint angle in radians. */
   float q;
-  /* Target joint velocity (unit: rad/s) */
+  /** Target joint velocity in radians per second. */
   float dq;
-  /* Target feedforward torque (unit: N⋅m) */
+  /** Target feedforward torque in newton-meters. */
   float tor;
-  /* Proportional gain (unit: N⋅m/rad ) */
+  /** Proportional gain in newton-meters per radian. */
   float Kp;
-  /* Derivative gain (unit: N⋅m/(rad/s) ) */
+  /** Derivative gain in newton-meters per (radian per second). */
   float Kd;
 };
 
-/**
- * @brief Represents the whole-body low-level command sent to the robot.
- */
+/** Whole-body low-level command sent to the robot. */
 using LowCmd = std::vector<MotorCmd>;
 
 struct RobotSpec {
   RobotSpec() = default;
   explicit RobotSpec(const yml::Node &config);
 
-  /* Name of the robot */
+  /** Robot name. */
   std::string robot_name;
-  /* Names of the joints */
+  /** Joint names. */
   std::vector<std::string> joint_names;
-  /* Names of the end effectors (feet) */
+  /** End-effector names for the feet. */
   std::vector<std::string> foot_names;
-  /* Degree of freedom of the robot */
+  /** Number of degrees of freedom. */
   std::size_t dof{};
-  /* Number of legs of the robot */
+  /** Number of legs. */
   std::size_t num_legs{};
-  /* Communication Frequency (unit: Hz) */
+  /** Communication frequency in Hz. */
   std::size_t comm_freq{};
 
-  /* Proportional gain used for following fixed trajectories */
+  /** Proportional gains used for following fixed trajectories. */
   std::vector<float> kp;
-  /* Derivative gain used for following fixed trajectories */
+  /** Derivative gains used for following fixed trajectories. */
   std::vector<float> kd;
-  /* Maximum joint position deviation allowed when following fixed trajectories (unit: rad) */
+  /** Maximum allowed joint position deviation when following fixed trajectories, in radians. */
   std::vector<float> stuck_threshold;
 
   struct Safety {
-    /* Whether to freeze the robot when safety violations are detected */
+    /** Whether to freeze the robot when safety violations are detected. */
     bool enabled{true};
-    /* Maximum allowable roll angle (unit: rad) */
+    /** Maximum allowed roll angle in radians. */
     float roll{M_PIf / 2};
-    /* Maximum allowable pitch angle (unit: rad) */
+    /** Maximum allowed pitch angle in radians. */
     float pitch{M_PIf / 2};
   } safety;
 
@@ -110,9 +100,9 @@ struct RobotSpec {
   float returning_to_standing_time{1.0};
   std::vector<float> standing_cfg;
   std::vector<float> lying_cfg;
-  /* Whether the robot automatically enter damped mode when low commands are not published */
+  /** Whether the robot automatically enters damped mode when low commands are not published. */
   bool auto_damped_mode{true};
-  /* Damping coefficient used in damped mode, only has effect when auto_damped_mode is false */
+  /** Damping coefficient used in damped mode when `auto_damped_mode` is false. */
   float kd_damped_mode{5.};
 };
 
@@ -141,14 +131,14 @@ class RobotApi : public Interface<RobotApi> {
 class RobotApiReorderingWrapper : public RobotApi {
  public:
   /**
-   * @brief Wraps another RobotApi instance and reorders joints and feet.
+   * Wraps another RobotApi instance and reorders joints and feet.
    *
    * @param exposed_name Name of this wrapper in the exposed spec.
    * @param wrapped_name Registered name of the underlying RobotApi implementation.
    * @param joint_order Mapping from wrapper joint index to wrapped joint index. Must be a permutation of size `dof`.
    * @param foot_order Mapping from wrapper foot index to wrapped foot index. If empty, identity mapping is used.
-   * @param joint_reversed Per-joint direction flags. When `true`, position/velocity/torque signs are flipped for that
-   *                       joint during remapping. If empty, all joints are treated as non-reversed.
+   * @param joint_reversed Per-joint direction flags. When `true`, position, velocity, and torque signs are flipped
+   * for that joint during remapping. If empty, all joints are treated as non-reversed.
    */
   RobotApiReorderingWrapper(const std::string &exposed_name, const std::string &wrapped_name,
                             std::vector<std::size_t> joint_order, std::vector<std::size_t> foot_order = {},

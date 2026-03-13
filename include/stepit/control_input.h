@@ -63,49 +63,46 @@ struct ControlRequests : public std::list<ControlRequest> {
 };
 
 /**
- * @class ControlInput
- * @brief An abstract base class defining the interface for handling control inputs.
+ * Abstract base class for handling control inputs.
  *
- * The ControlInput class serves as a standard interface for various input methods
- * (e.g., console, joystick, publisher). It provides mechanisms to poll for new data,
- * check availability, and retrieve control requests in a thread-safe manner.
+ * This interface covers input sources such as consoles, joysticks, and
+ * publishers. It provides thread-safe request polling, availability checks,
+ * and queue access.
  */
 class ControlInput : public Interface<ControlInput> {
  public:
   /**
-   * @brief Checks if there are any control requests available to be processed.
+   * Checks whether any control requests are available to process.
    *
-   * @return true if the internal request queue is not empty, false otherwise.
+   * @return True if the internal request queue is not empty; otherwise, false.
    */
   virtual bool available() const = 0;
 
   /**
-   * @brief Polls the underlying input source for new data.
+   * Polls the underlying input source for new data.
    */
   virtual void poll() = 0;
 
   /**
-   * @brief Retrieves and removes the next control request from the queue.
+   * Retrieves and removes the next control request from the queue.
    *
-   * @return A boost::optional containing the next ControlRequest if available,
-   *         or boost::none if the queue is empty.
+   * @return The next ControlRequest if available; otherwise, boost::none.
    */
   boost::optional<ControlRequest> pop();
 
  protected:
   /**
-   * @brief Parses a raw string request and pushes it onto the internal queue.
+   * Parses a raw string request and pushes it onto the internal queue.
    *
-   * @param request_str The raw string representation of the control command.
-   * @return std::future<ControlResponse> A future that will eventually contain the
-   *         result of processing this request.
+   * @param request_str Raw string representation of the control command.
+   * @return Future that will eventually hold the processing result.
    */
   std::future<ControlResponse> put(std::string request_str);
 
  private:
-  /* Mutex to protect access to the `requests_` deque */
+  /** Mutex protecting access to `requests_`. */
   std::mutex mutex_;
-  /* Queue storing pending control requests */
+  /** Queue of pending control requests. */
   std::deque<ControlRequest> requests_;
 };
 

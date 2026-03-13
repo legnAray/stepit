@@ -10,13 +10,13 @@ struct PolicySpec : RobotSpec {
   explicit PolicySpec(const RobotSpec &robot_spec, std::string home_dir)
       : RobotSpec(robot_spec), home_dir(std::move(home_dir)) {}
 
-  /* Home directory for the policy to read configuration files. */
+  /** Home directory from which the policy reads configuration files. */
   std::string home_dir;
-  /* Name of the policy */
+  /** Policy name. */
   std::string policy_name;
-  /* Control frequency in Hz */
+  /** Control frequency in Hz. */
   std::size_t control_freq{};
-  /* Whether the policy is trusted in the case of safety violations */
+  /** Whether the policy remains trusted when safety violations occur. */
   bool trusted{};
 };
 
@@ -29,29 +29,29 @@ class Policy : public Interface<Policy, const RobotSpec & /* robot_spec */, cons
   bool isTrusted() const { return getSpec().trusted; }
 
   /**
-   * @brief Resets the policy to its initial state.
+   * Resets the policy to its initial state.
    *
    * @return True if reset succeeded; otherwise, false.
    */
   virtual bool reset() = 0;
   /**
-   * @brief Produce a control action based on the current low-level state.
+   * Produces a control action from the current low-level state.
    *
-   * @param low_state Current low-level state information to base the control decision on.
-   * @param requests Current control requests to be replied by the policy.
-   * @param cmd Output parameter to be populated with the resulting low-level command.
-   * @return True if the action was successfully computed; otherwise false.
+   * @param low_state Current low-level state information used for the control decision.
+   * @param requests Current control requests to be handled by the policy.
+   * @param cmd Output parameter populated with the resulting low-level command.
+   * @return True if the action was computed successfully; otherwise, false.
    */
   virtual bool act(const LowState &low_state, ControlRequests &requests, LowCmd &cmd) = 0;
   /**
-   * @brief Runs an optional post-act phase after the latest low-level command has been handed off.
+   * Runs an optional post-act phase after the latest low-level command is handed off.
    *
    * Use this phase for non-critical work such as state publication so the control path can prioritize
    * `act()` and low-level command updates.
    */
   virtual void postAct() {}
   /**
-   * @brief Shuts down the policy, releasing resources and performing any necessary finalization.
+   * Shuts down the policy and releases any owned resources.
    */
   virtual void exit() = 0;
 };

@@ -19,18 +19,16 @@ constexpr int kDefPriority = 5;
 constexpr int kMinPriority = 0;
 
 /**
- * @class Registry
- * @brief A thread-safe registry for managing and creating objects via factory functions.
+ * Thread-safe registry for creating objects through named factory functions.
  *
- * The Registry class provides a mechanism to register factory functions associated with
- * specific names and priorities. It allows for the dynamic creation of objects based on
- * these registered names.
+ * The registry stores factories under string names and priorities, then creates
+ * instances on demand from the registered entries.
  *
- * @tparam T The base type of the objects created by this registry.
- * @tparam Args The argument types required by the factory functions to create objects of type T.
+ * @tparam T Base type produced by this registry.
+ * @tparam Args Argument types forwarded to registered factories.
  *
- * @note This class is non-copyable to ensure unique management of the registry state.
- * @note All public operations are thread-safe, protected by an internal mutex.
+ * @note This class is non-copyable to preserve unique registry state.
+ * @note All public operations are thread-safe and guarded by an internal mutex.
  */
 template <typename T, typename... Args>
 class Registry {
@@ -40,12 +38,10 @@ class Registry {
   Registry &operator=(const Registry &) = delete;
 
   /**
-   * @class Registration
-   * @brief Represents a registration entry within the registry system.
+   * RAII handle for one registry entry.
    *
-   * The Registration class manages the lifecycle of a registered factory function.
-   * It registers the factory upon construction and unregisters it upon destruction,
-   * providing a RAII-style mechanism to ensure proper cleanup of registry entries.
+   * The handle registers a factory on construction and unregisters it on
+   * destruction.
    */
   class Registration;
   using Factory = std::function<std::unique_ptr<T>(Args...)>;
@@ -218,31 +214,30 @@ auto Registry<T, Args...>::Registration::operator=(Registration &&other) noexcep
 }
 
 /**
- * @class Interface
- * @brief CRTP-style helper that equips a derived interface type with a global registry.
+ * CRTP helper that equips a derived interface type with a global registry.
  *
- * This class provides:
- * - A singleton registry for mapping string names to factories.
- * - A convenient RAII registration helper to register implementations.
- * - Factory functions to construct registered implementations by name.
+ * This helper provides:
+ * - a singleton registry that maps string names to factories;
+ * - an RAII registration helper for derived implementations;
+ * - factory helpers for constructing registered implementations.
  *
- * @tparam Derived  The concrete interface type inheriting from this helper (CRTP).
- * @tparam Args     Constructor arguments forwarded to registered factories.
+ * @tparam Derived Concrete interface type inheriting from this helper.
+ * @tparam Args Constructor arguments forwarded to registered factories.
  *
  * @par Type aliases
- * - Ptr:      Owning pointer type returned by factory methods (std::unique_ptr<Derived>).
- * - Registry: The underlying ::stepit::Registry used to store factories.
- * - Factory:  The factory callable type defined by Registry.
+ * - Ptr: Owning pointer returned by factory methods (`std::unique_ptr<Derived>`).
+ * - Registry: Underlying ::stepit::Registry used to store factories.
+ * - Factory: Factory callable type defined by Registry.
  *
  * @par Nested types
- * - Registration: RAII object that registers a factory under a name with a priority.
+ * - Registration: RAII object that registers a factory under a name and priority.
  *
  * @par Factory methods
  * - make(name, args...): Constructs an instance registered under @p name.
  * - make<T>(args...): Constructs a concrete type @p T directly.
  *
- * @warning Registered factories are expected to create objects compatible with Derived.
- * @throws Whatever exceptions may be thrown by the underlying registry/factory.
+ * @warning Registered factories must create objects compatible with Derived.
+ * @throws Any exception propagated by the underlying registry or factory.
  */
 template <typename Derived, typename... Args>
 class Interface {

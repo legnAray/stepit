@@ -9,15 +9,16 @@
 
 namespace stepit {
 /**
- * @brief Abstract base interface for spin operations.
+ * Abstract base interface for spin operations.
  *
- * Spin implementations define a main loop or wait mechanism via the spin() method.
+ * Spin implementations define a main loop or wait mechanism via `spin()`.
  */
 class Spin : public Interface<Spin> {
  public:
   virtual ~Spin() = default;
   /**
-   * @brief Run the spin loop or waiting mechanism.
+   * Runs the spin loop or waiting mechanism.
+   *
    * @return Exit status (0 for normal exit, non-zero for errors).
    */
   virtual int spin() = 0;
