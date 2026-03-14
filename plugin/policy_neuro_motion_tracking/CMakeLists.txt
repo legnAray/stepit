@@ -9,6 +9,7 @@ endif()
 
 stepit_add_plugin(${PROJECT_NAME}
     SOURCES
+      src/motion_clip.cpp
       src/motion_trajectory.cpp
       src/forward_kinematics.cpp
       src/relative_pose_source.cpp

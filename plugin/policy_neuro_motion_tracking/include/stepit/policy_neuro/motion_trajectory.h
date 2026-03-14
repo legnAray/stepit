@@ -3,12 +3,10 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <memory>
-#include <string>
 #include <vector>
 
-#include <stepit/field/data_loader.h>
 #include <stepit/policy_neuro/module.h>
+#include <stepit/policy_neuro/motion_clip.h>
 
 namespace stepit {
 namespace neuro_policy {
@@ -29,13 +27,11 @@ class MotionTrajectory : public Module {
     ArrXf buffer;
   };
 
-  void checkFps(std::size_t control_freq);
-  void initField(const yml::Node &node, FieldView &field_spec);
+  void initField(const yml::Node &node, const std::vector<std::int64_t> &default_offsets, double control_freq);
 
-  std::string path_;
-  std::unique_ptr<DataLoader> data_;
-  std::size_t num_frames_{};
+  MotionClip clip_;
   std::vector<FieldView> fields_;
+  std::size_t num_frames_{};
 
   std::size_t frame_idx_{};
 };
