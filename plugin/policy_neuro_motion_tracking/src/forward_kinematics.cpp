@@ -8,19 +8,20 @@ namespace stepit {
 namespace neuro_policy {
 ForwardKinematics::ForwardKinematics(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
     : Module(policy_spec, ModuleSpec(module_spec, "forward_kinematics")) {
-      std::string urdf_path_key = config_.getDefinedKey({"urdf_filename", "urdf_path"});
-  urdf_path_ = config_["urdf_path"].as<std::string>("robot.urdf");
-  STEPIT_ASSERT(not urdf_path_.empty(), "'urdf_path' cannot be empty.");
+  // Load URDF path and build Pinocchio model
+  std::string urdf_path_key = config_.getDefinedKey({"urdf_filename", "urdf_path"});
+  auto urdf_path_node       = config_[urdf_path_key];
+  urdf_path_                = urdf_path_node.as<std::string>("robot.urdf");
+  urdf_path_node.throwIf(urdf_path_.empty(), "'urdf_path' must not be empty");
   urdf_path_ = urdf_path_[0] == '/' ? urdf_path_ : joinPaths(policy_spec.home_dir, urdf_path_);
-
   pinocchio::urdf::buildModel(urdf_path_, pinocchio::JointModelFreeFlyer(), model_);
   data_ = pinocchio::Data(model_);
 
+  // Load selected body names from config or use all body links from URDF by default
   if (config_["body_names"].hasValue()) {
-    STEPIT_ASSERT(config_["body_names"].isSequence(), "Expected 'body_names' to be a sequence.");
-    body_names_ = config_["body_names"].as<std::vector<std::string>>();
-    STEPIT_ASSERT(not body_names_.empty(), "'body_names' cannot be empty.");
-  } else if (body_names_.empty()) {
+    config_["body_names"].assertNonEmptySequence();
+    config_["body_names"].to(body_names_);
+  } else {
     for (const auto &frame : model_.frames) {
       if (frame.type == pinocchio::BODY) {
         body_names_.push_back(frame.name);
@@ -29,12 +30,11 @@ ForwardKinematics::ForwardKinematics(const NeuroPolicySpec &policy_spec, const M
     STEPIT_ASSERT(not body_names_.empty(), "No body link found from URDF '{}'.", urdf_path_);
   }
 
+  // Load anchor body name and get frame indices for the anchor and selected bodies
   auto anchor_body = config_["anchor_body"].as<std::string>(body_names_.front());
   anchor_index_    = model_.getFrameId(anchor_body);
   STEPIT_ASSERT(anchor_index_ < static_cast<pinocchio::FrameIndex>(model_.nframes),
                 "Anchor frame '{}' is not found in urdf '{}'.", anchor_body, urdf_path_);
-
-  body_indices_.reserve(body_names_.size());
   STEPIT_DBUGNT("Forward kinematics body names:");
   for (const auto &name : body_names_) {
     STEPIT_DBUGNT("- {}", name);
@@ -44,6 +44,7 @@ ForwardKinematics::ForwardKinematics(const NeuroPolicySpec &policy_spec, const M
     body_indices_.push_back(frame_idx);
   }
 
+  // Get joint indices for the robot DoF specified in policy spec
   joint_indices_.reserve(policy_spec.joint_names.size());
   for (const auto &joint_name : policy_spec.joint_names) {
     auto joint_id = model_.getJointId(joint_name);
@@ -54,11 +55,11 @@ ForwardKinematics::ForwardKinematics(const NeuroPolicySpec &policy_spec, const M
     STEPIT_ASSERT(joint_nv == 1, "Joint '{}' has nv={}, only nv==1 is supported.", joint_name, joint_nv);
     joint_indices_.push_back(joint_id);
   }
-
   STEPIT_ASSERT(policy_spec.dof == joint_indices_.size(),
                 "Robot DoF ({}) does not match the number of joints {} specified in urdf '{}'.", policy_spec.dof,
                 joint_indices_.size(), urdf_path_);
 
+  // Register requirements for the anchor pose and provisions for the whole body poses
   auto anchor_global_pos_field = config_["anchor_global_pos_field"].as<std::string>("base_global_pos");
   anchor_global_pos_id_        = registerRequirement(anchor_global_pos_field, 3);
   auto anchor_global_ori_field = config_["anchor_global_ori_field"].as<std::string>("base_global_ori");

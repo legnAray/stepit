@@ -7,9 +7,8 @@ DummyHeightmapSource::DummyHeightmapSource(const NeuroPolicySpec &policy_spec, c
   if (config_["sample_coord"].hasValue()) {
     config_["sample_coord"].to(sample_coords_);
   } else {
-    STEPIT_ASSERT(config_["dimension"].hasValue() and config_["grid_size"].hasValue(),
-                  "Either 'sample_coord' or both 'dimension' and 'grid_size' must be specified in {}.",
-                  config_path_);
+    config_.require(config_["dimension"].hasValue() and config_["grid_size"].hasValue(),
+                    "Either 'sample_coord' or both 'dimension' and 'grid_size' must be specified");
     std::array<int, 2> dimension;
     std::array<float, 2> grid_size;
     config_["dimension"].to(dimension);

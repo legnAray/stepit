@@ -10,8 +10,8 @@ AffineOperator::AffineOperator(const yml::Node &config) : node_(config) {
     source_id_      = registerRequirement(field_name);
     target_id_      = source_id_;
   } else {
-    STEPIT_ASSERT(config["source"].hasValue() and config["target"].hasValue(),
-                  "Affine op must contain 'field' or both 'source' and 'target'.");
+    config.require(config["source"].hasValue() and config["target"].hasValue(),
+                   "Specify 'field' or both 'source' and 'target' for 'affine' operator");
     auto source_name = config["source"].as<std::string>();
     auto target_name = config["target"].as<std::string>();
     source_id_       = registerRequirement(source_name);
@@ -33,20 +33,24 @@ void AffineOperator::init() {
   scale_ = ArrXf::Ones(field_size_);
   bias_  = ArrXf::Zero(field_size_);
 
-  if (node_["scale"].hasValue()) {
-    node_["scale"].to(scale_);
-  } else if (node_["std"].hasValue()) {
+  auto scale_node = node_["scale"];
+  auto std_node   = node_["std"];
+  if (scale_node.hasValue()) {
+    scale_node.to(scale_);
+  } else if (std_node.hasValue()) {
     ArrXf std{ArrXf::Ones(field_size_)};
-    node_["std"].to(std);
-    STEPIT_ASSERT((std > kEPS).all(), "'std' values of affine op must be positive.");
+    std_node.to(std);
+    std_node.require((std > kEPS).all(), "'std' values must be positive");
     scale_ = std.cwiseInverse();
   }
 
-  if (node_["bias"].hasValue()) {
-    node_["bias"].to(bias_);
-  } else if (node_["mean"].hasValue()) {
+  auto bias_node = node_["bias"];
+  auto mean_node = node_["mean"];
+  if (bias_node.hasValue()) {
+    bias_node.to(bias_);
+  } else if (mean_node.hasValue()) {
     ArrXf mean{ArrXf::Zero(field_size_)};
-    node_["mean"].to(mean);
+    mean_node.to(mean);
     bias_ = -mean.cwiseProduct(scale_);
   }
 }
@@ -89,15 +93,14 @@ bool ConcatOperator::update(FieldMap &context) {
 }
 
 ConstOperator::ConstOperator(const yml::Node &config) {
-  STEPIT_ASSERT(config["target"].hasValue() or config["field"].hasValue(),
-                "Const op must contain 'target' or 'field'.");
-  STEPIT_ASSERT(config["value"].hasValue(), "Const op must contain 'value'.");
-
+  config.require(config["target"].hasValue() or config["field"].hasValue(),
+                 "Specify 'target' or 'field' for 'const' operator");
   auto target_name = config["target"].hasValue() ? config["target"].as<std::string>()
                                                  : config["field"].as<std::string>();
 
   auto value_node = config["value"];
-  STEPIT_ASSERT(value_node.isScalar() or value_node.isSequence(), "Const op 'value' must be a scalar or sequence.");
+  value_node
+      .require(value_node.isScalar() or value_node.isNonEmptySequence(), "Expected a scalar or a non-empty sequence");
 
   FieldSize size{};
   if (value_node.isScalar()) {
@@ -108,7 +111,7 @@ ConstOperator::ConstOperator(const yml::Node &config) {
     value_node.to(value_);
     config["size"].to(size, true);
     if (size > 0) {
-      STEPIT_ASSERT(value_.size() == size, "Const op has mismatched 'size' and 'value' lengths.");
+      config.throwIf(value_.size() != size, "'size' and 'value' lengths mismatch");
     } else {
       size = static_cast<FieldSize>(value_.size());
     }
@@ -126,7 +129,7 @@ CopyOperator::CopyOperator(const yml::Node &config) {
   config.assertHasValue("source", "target");
   auto source_name = config["source"].as<std::string>();
   auto target_name = config["target"].as<std::string>();
-  STEPIT_ASSERT(source_name != target_name, "Source and target cannot be the same in a copy op.");
+  config.throwIf(source_name == target_name, "'source' and 'target' must not be the same");
   source_id_ = registerRequirement(source_name);
   target_id_ = registerProvision(target_name, 0);
 
@@ -152,7 +155,7 @@ HistoryOperator::HistoryOperator(const yml::Node &config) {
   auto target_name = config["target"].as<std::string>();
   source_size_     = config["source_size"].as<FieldSize>(0);
   history_len_     = config["history_len"].as<std::uint32_t>();
-  STEPIT_ASSERT(history_len_ > 0, "'history_len' of history op must be greater than 0.");
+  config["history_len"].require(history_len_ > 0, "'history_len' must be greater than 0");
   newest_first_          = config["newest_first"].as<bool>(true);
   include_current_frame_ = config["include_current_frame"].as<bool>(true);
   if (config["default_value"].isDefined()) {
@@ -246,8 +249,8 @@ MaskedFillOperator::MaskedFillOperator(const yml::Node &config) {
     source_id_      = registerRequirement(field_name);
     target_id_      = source_id_;
   } else {
-    STEPIT_ASSERT(config["source"].hasValue() and config["target"].hasValue(),
-                  "masked_fill op must contain 'field' or both 'source' and 'target'.");
+    config.require(config["source"].hasValue() and config["target"].hasValue(),
+                   "Specify 'field' or both 'source' and 'target' for 'masked_fill' operator");
     auto source_name = config["source"].as<std::string>();
     auto target_name = config["target"].as<std::string>();
     source_id_       = registerRequirement(source_name);
@@ -279,8 +282,8 @@ bool MaskedFillOperator::update(FieldMap &context) {
 }
 
 SliceOperator::SliceOperator(const yml::Node &config) {
-  config.throwUnless(config["source"].hasValue() and config["target"].hasValue(),
-                     "Slice op must contain 'source' and 'target'");
+  config.require(config["source"].hasValue() and config["target"].hasValue(),
+                 "Slice op must contain 'source' and 'target'");
   source_id_ = registerRequirement(config["source"].as<std::string>());
   target_id_ = registerProvision(config["target"].as<std::string>(), 0);
   config.to(indices_);

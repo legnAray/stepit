@@ -39,10 +39,12 @@ void ActionHistory::postStep(const FieldMap &context) { action_buf_.push_back(co
 
 ActionFilter::ActionFilter(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
     : Module(policy_spec, ModuleSpec(module_spec, "action_filter")) {
-  default_action_ = policy_spec.default_action;
-  config_["window_size"].to(window_size_);
-  STEPIT_ASSERT(window_size_ > 1, "'window_size' must be greater than 1.");
+  auto window_size_node = config_["window_size"];
+  window_size_node.to(window_size_);
+  window_size_node.require(window_size_ > 1, "'window_size' must be greater than 1");
   STEPIT_LOGNT("Action low-pass filter is applied with a window size of {}.", window_size_);
+
+  default_action_ = policy_spec.default_action;
   action_buf_.allocate(window_size_);
   action_id_ = registerRequirement("action");
 }
