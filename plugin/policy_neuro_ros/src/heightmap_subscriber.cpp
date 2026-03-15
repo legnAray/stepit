@@ -16,7 +16,7 @@ grid_map::InterpolationMethods parseInterpolationMethod(const std::string &metho
 }
 
 HeightmapSubscriber::HeightmapSubscriber(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
-    : DummyHeightmapSource(policy_spec, ModuleSpec(module_spec, "heightmap_subscriber")) {
+    : DummyHeightmapSource(policy_spec, ModuleSpec(module_spec, "heightmap")) {
   yml::Node map_sub_cfg = config_["grid_map_subscriber"];
   map_sub_cfg["timeout_threshold"].to(map_timeout_threshold_, true);
   map_sub_cfg["default_enabled"].to(default_subscriber_enabled_, true);
