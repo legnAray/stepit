@@ -1,19 +1,13 @@
-#include <memory>
-
-#include <pybind11/embed.h>
-
-static std::unique_ptr<pybind11::scoped_interpreter> g_interpreter;
+#include <stepit/pyutils/python_runtime.h>
 
 extern "C" {
 int stepit_plugin_init(int &argc, char **argv) {
-  if (not Py_IsInitialized()) {
-    g_interpreter = std::make_unique<pybind11::scoped_interpreter>();
-  }
+  stepit::ensurePythonInterpreter();
   return 0;
 }
 
 int stepit_plugin_cleanup(int &argc, char **argv) {
-  g_interpreter.reset();
+  stepit::releasePythonInterpreter();
   return 0;
 }
 }

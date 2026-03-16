@@ -11,7 +11,10 @@ add_subdirectory(${STEPIT_HOME_DIRECTORY}/extern/pybind11 pybind11)
 
 stepit_add_plugin(${PROJECT_NAME}
     SOURCES
+      src/ndarray_utils.cpp
       src/npz_reader.cpp
+      src/pkl_reader.cpp
+      src/python_runtime.cpp
     ENTRY
       src/entry.cpp
     INCLUDES
@@ -23,6 +26,3 @@ stepit_add_plugin(${PROJECT_NAME}
     DEPENDS
       field_base
 )
-
-stepit_add_executable(npz_info app/npz_info.cpp)
-target_link_libraries(npz_info PRIVATE ${PROJECT_NAME})

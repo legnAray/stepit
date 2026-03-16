@@ -1,6 +1,8 @@
+#include <cstring>
 #include <iostream>
 
 #include <boost/program_options.hpp>
+#include <fmt/core.h>
 
 #include <stepit/plugin.h>
 #include <stepit/nnrt/nnrt.h>
@@ -46,11 +48,17 @@ int main(int argc, char *argv[]) {
 
   PluginManager plugin_manager(plugin_args);
 
-  const auto factory = arg_map["factory"].as<std::string>();
-  const auto path    = arg_map["model_path"].as<std::string>();
-  const auto config  = (arg_map.find("config_path") != arg_map.end())
-                           ? yml::loadFile(arg_map["config_path"].as<std::string>())
-                           : yml::Node();
+  auto factory      = arg_map["factory"].as<std::string>();
+  const auto path   = arg_map["model_path"].as<std::string>();
+  const auto config = (arg_map.find("config_path") != arg_map.end())
+                          ? yml::loadFile(arg_map["config_path"].as<std::string>())
+                          : yml::Node();
+  if (startsWith(factory, "nnrtapi@")) {
+    factory = factory.substr(std::strlen("nnrtapi@"));
+  } else if (factory.find("@") != std::string::npos) {
+    fmt::print(std::cerr, "{} Invalid factory name '{}'. Expected a factory name of nnrtapi.\n", kErrorPrefix, factory);
+    return -1;
+  }
 
   auto model1 = NnrtApi::make(factory, path, config);
   auto model2 = NnrtApi::make(factory, path, config);

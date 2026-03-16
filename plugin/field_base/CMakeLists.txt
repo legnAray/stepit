@@ -9,3 +9,6 @@ stepit_add_plugin(${PROJECT_NAME}
     INCLUDES
       include
 )
+
+stepit_add_executable(data_info app/data_info.cpp)
+target_link_libraries(data_info PRIVATE ${PROJECT_NAME})

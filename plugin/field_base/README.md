@@ -9,6 +9,9 @@ StepIt plugin providing foundational field registry, generic field operators and
 
 ### Provided Factories
 
+- `stepit::field::DataLoader`:
+  - `csv`: loads keyed arrays from a directory of `.csv` files.
+
 - `stepit::field::Operator`:
 
   | Name          | Description                                                                 |
@@ -21,3 +24,11 @@ StepIt plugin providing foundational field registry, generic field operators and
   | `masked_fill` | Fills selected indices/ranges of a field with a constant value.             |
   | `slice`       | Extracts selected indices/ranges from a source field into a target field.   |
   | `split`       | Splits one source field into multiple target fields by configured segments. |
+
+### Executables
+
+- `data_info`: prints key/shape/dtype summary for arrays loaded through `stepit::field::DataLoader`.
+
+	```shell
+	data_info [-f csv/npz/pkl] <data_path> [-- <plugin_args...>]
+	```
