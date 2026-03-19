@@ -1,7 +1,6 @@
-#include <stepit/policy_neuro_redis/field_subscriber_redis.h>
-#include "llu/chrono.h"
-
 #include <sstream>
+
+#include <stepit/policy_neuro_redis/field_subscriber_redis.h>
 
 namespace stepit {
 namespace neuro_policy {

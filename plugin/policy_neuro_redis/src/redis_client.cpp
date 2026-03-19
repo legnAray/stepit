@@ -1,8 +1,8 @@
 #include <stepit/policy_neuro_redis/redis_client.h>
 
-#define STEPIT_HIREDIS_VERSION_AT_LEAST(major, minor, patch)                                                \
-  ((HIREDIS_MAJOR > (major)) or                                                                             \
-   (HIREDIS_MAJOR == (major) and                                                                            \
+#define STEPIT_HIREDIS_VERSION_AT_LEAST(major, minor, patch) \
+  ((HIREDIS_MAJOR > (major)) or                              \
+   (HIREDIS_MAJOR == (major) and                             \
     (HIREDIS_MINOR > (minor) or (HIREDIS_MINOR == (minor) and HIREDIS_PATCH >= (patch)))))
 
 namespace stepit {
@@ -113,9 +113,8 @@ bool RedisClient::connect() {
   if (context != nullptr and context->err == REDIS_OK and config_.command_timeout_ms > 0) {
     const timeval command_timeout = makeTimeval(config_.command_timeout_ms);
     if (redisSetTimeout(context.get(), command_timeout) != REDIS_OK) {
-      reportError(
-          fmt::format("Failed to set Redis command timeout for {}:{}{}.", config_.host, config_.port,
-                      getContextErrorSuffix(context.get())));
+      reportError(fmt::format("Failed to set Redis command timeout for {}:{}{}.", config_.host, config_.port,
+                              getContextErrorSuffix(context.get())));
       return false;
     }
   }
@@ -188,8 +187,8 @@ RedisReadStatus RedisClient::readValue(const std::string &key, const std::string
 
   RedisReplyPtr reply = field.empty() ? runCommand("GET", key) : runCommand("HGET", key, field);
   if (not reply) {
-    reportError(fmt::format("Redis read failed for '{}'{}.", formatTarget(key, field),
-                            getContextErrorSuffix(redis_.get())));
+    reportError(
+        fmt::format("Redis read failed for '{}'{}.", formatTarget(key, field), getContextErrorSuffix(redis_.get())));
     disconnect();
     return RedisReadStatus::kError;
   }
@@ -222,8 +221,7 @@ RedisClient::RedisReplyPtr RedisClient::runCommand(const std::string &command, c
   return runCommand(2, argv, argvlen);
 }
 
-RedisClient::RedisReplyPtr RedisClient::runCommand(const std::string &command,
-                                                   const std::string &arg1,
+RedisClient::RedisReplyPtr RedisClient::runCommand(const std::string &command, const std::string &arg1,
                                                    const std::string &arg2) {
   const char *argv[] = {command.c_str(), arg1.c_str(), arg2.c_str()};
   size_t argvlen[]   = {command.size(), arg1.size(), arg2.size()};
