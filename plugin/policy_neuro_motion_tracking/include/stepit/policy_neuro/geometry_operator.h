@@ -84,6 +84,20 @@ class EulerToQuatOperator : public Operator {
   ArrXf buffer_;
 };
 
+class QuatToAngleAxisOperator : public Operator {
+ public:
+  explicit QuatToAngleAxisOperator(const yml::Node &config);
+
+  void init() override;
+  bool update(FieldMap &context) override;
+
+ private:
+  FieldId source_id_{};
+  FieldId target_id_{};
+  std::size_t num_quats_{};
+  ArrXf buffer_;
+};
+
 class QuatToRotation6dOperator : public Operator {
  public:
   explicit QuatToRotation6dOperator(const yml::Node &config);

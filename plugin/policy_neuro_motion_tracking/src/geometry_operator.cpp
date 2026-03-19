@@ -196,6 +196,36 @@ bool EulerToQuatOperator::update(FieldMap &context) {
   return true;
 }
 
+QuatToAngleAxisOperator::QuatToAngleAxisOperator(const yml::Node &config) {
+  config.assertHasValue("source", "target");
+  source_id_ = registerRequirement(config["source"].as<std::string>());
+  target_id_ = registerProvision(config["target"].as<std::string>(), 0);
+
+  try {
+    init();
+  } catch (const UndefinedFieldSizeError &) {}
+}
+
+void QuatToAngleAxisOperator::init() {
+  if (buffer_.size() > 0) return;
+  const auto source_size = getFieldSize(source_id_);
+  STEPIT_ASSERT(source_size > 0 and source_size % 4 == 0, "Field '{}' must have size 4 * N, but got {}.",
+                getFieldName(source_id_), source_size);
+  num_quats_ = source_size / 4;
+  setFieldSize(target_id_, static_cast<FieldSize>(3 * num_quats_));
+  buffer_.resize(getFieldSize(target_id_));
+}
+
+bool QuatToAngleAxisOperator::update(FieldMap &context) {
+  const auto &source = context.at(source_id_);
+  for (std::size_t i{}; i < num_quats_; ++i) {
+    Quatf q(source.segment(static_cast<Eigen::Index>(4 * i), 4));
+    buffer_.segment(static_cast<Eigen::Index>(3 * i), 3) = q.rotationVector();
+  }
+  context[target_id_] = buffer_;
+  return true;
+}
+
 QuatToRotation6dOperator::QuatToRotation6dOperator(const yml::Node &config) {
   config.assertHasValue("source", "target");
   source_id_ = registerRequirement(config["source"].as<std::string>());
@@ -232,6 +262,7 @@ STEPIT_REGISTER_FIELD_OPERATOR(quat_rotate_between, kDefPriority, Operator::make
 STEPIT_REGISTER_FIELD_OPERATOR(quat_inverse, kDefPriority, Operator::make<QuatInverseOperator>);
 STEPIT_REGISTER_FIELD_OPERATOR(quat_to_euler, kDefPriority, Operator::make<QuatToEulerOperator>);
 STEPIT_REGISTER_FIELD_OPERATOR(euler_to_quat, kDefPriority, Operator::make<EulerToQuatOperator>);
+STEPIT_REGISTER_FIELD_OPERATOR(quat_to_angle_axis, kDefPriority, Operator::make<QuatToAngleAxisOperator>);
 STEPIT_REGISTER_FIELD_OPERATOR(quat_to_rotation6d, kDefPriority, Operator::make<QuatToRotation6dOperator>);
 }  // namespace field
 }  // namespace stepit
