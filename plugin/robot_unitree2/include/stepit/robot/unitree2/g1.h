@@ -27,10 +27,13 @@ class G1Api final : public RobotApi {
   static constexpr const char *kRobotName = "g1";
 
  private:
-  void callback(const hg_msg::LowState_ *msg);
+  void lowStateCallback(const hg_msg::LowState_ *msg);
+  void torsoImuCallback(const hg_msg::IMUState_ *msg);
 
   u2_sdk::ChannelPublisherPtr<hg_msg::LowCmd_> low_cmd_pub_;
   u2_sdk::ChannelSubscriberPtr<hg_msg::LowState_> low_state_sub_;
+  u2_sdk::ChannelSubscriberPtr<hg_msg::IMUState_> torso_imu_sub_;
+  bool use_torso_imu_{false};
 
   std::mutex mutex_;
   std::atomic<std::uint8_t> mode_machine_{0};

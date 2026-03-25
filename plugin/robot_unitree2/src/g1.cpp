@@ -3,6 +3,8 @@
 namespace stepit {
 G1Api::G1Api() : RobotApi(kRobotName), low_state_(getDoF(), getNumLegs()) {
   low_cmd_.mode_pr(0);
+  use_torso_imu_ = config_["use_torso_imu"].as(false);
+
   if (config_["motor_enabled"].hasValue()) {
     config_["motor_enabled"].to(motor_enabled_);
   } else {
@@ -24,8 +26,12 @@ void G1Api::getControl(bool enable) {
     Unitree2ServiceClient::initialize();
     low_cmd_pub_   = std::make_shared<u2_sdk::ChannelPublisher<hg_msg::LowCmd_>>("rt/lowcmd");
     low_state_sub_ = std::make_shared<u2_sdk::ChannelSubscriber<hg_msg::LowState_>>("rt/lowstate");
+    torso_imu_sub_ = std::make_shared<u2_sdk::ChannelSubscriber<hg_msg::IMUState_>>("rt/secondary_imu");
     low_cmd_pub_->InitChannel();
-    low_state_sub_->InitChannel([this](const void *msg) { callback(static_cast<const hg_msg::LowState_ *>(msg)); }, 1);
+    low_state_sub_
+        ->InitChannel([this](const void *msg) { lowStateCallback(static_cast<const hg_msg::LowState_ *>(msg)); }, 1);
+    torso_imu_sub_
+        ->InitChannel([this](const void *msg) { torsoImuCallback(static_cast<const hg_msg::IMUState_ *>(msg)); }, 1);
   }
 }
 
@@ -51,13 +57,15 @@ void G1Api::send() {
   low_cmd_pub_->Write(low_cmd_);
 }
 
-void G1Api::callback(const hg_msg::LowState_ *msg) {
+void G1Api::lowStateCallback(const hg_msg::LowState_ *msg) {
   std::lock_guard<std::mutex> _(mutex_);
   mode_machine_.store(msg->mode_machine(), std::memory_order_relaxed);
-  low_state_.imu.rpy           = msg->imu_state().rpy();
-  low_state_.imu.quaternion    = msg->imu_state().quaternion();
-  low_state_.imu.accelerometer = msg->imu_state().accelerometer();
-  low_state_.imu.gyroscope     = msg->imu_state().gyroscope();
+  if (not use_torso_imu_) {
+    low_state_.imu.rpy           = msg->imu_state().rpy();
+    low_state_.imu.quaternion    = msg->imu_state().quaternion();
+    low_state_.imu.accelerometer = msg->imu_state().accelerometer();
+    low_state_.imu.gyroscope     = msg->imu_state().gyroscope();
+  }
 
   for (int i{}; i < getDoF(); ++i) {
     low_state_.motor_state[i].q   = msg->motor_state()[i].q();
@@ -65,6 +73,15 @@ void G1Api::callback(const hg_msg::LowState_ *msg) {
     low_state_.motor_state[i].tor = msg->motor_state()[i].tau_est();
   }
   low_state_.tick = msg->tick();
+}
+
+void G1Api::torsoImuCallback(const hg_msg::IMUState_ *msg) {
+  std::lock_guard<std::mutex> _(mutex_);
+  if (not use_torso_imu_) return;
+  low_state_.imu.rpy           = msg->rpy();
+  low_state_.imu.quaternion    = msg->quaternion();
+  low_state_.imu.accelerometer = msg->accelerometer();
+  low_state_.imu.gyroscope     = msg->gyroscope();
 }
 
 const std::array<std::size_t, 29> kJointOrderG1Dfs2Bfs = {

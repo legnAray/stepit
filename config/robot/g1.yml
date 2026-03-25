@@ -61,3 +61,4 @@ lying_cfg: [
 ]
 auto_damped_mode: true
 motor_enabled: true     # Union[Bool, Tuple[Bool * 29]], the enabled status of each motor in order.
+use_torso_imu: false    # Whether to use the torso IMU (secondary_imu) instead of pelvis imu
