@@ -6,18 +6,28 @@ namespace stepit {
 namespace neuro_policy {
 JointReordering::JointReordering(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
     : Module(policy_spec, ModuleSpec(module_spec, "joint_reordering/measurements")) {
-  config_["order"].to(joint_order_);
-  config_["reversed"].to(joint_reversed_, true);
+  yml::Node order_node    = config_["order"];
+  yml::Node reversed_node = config_["reversed"];
 
-  auto sorted = joint_order_;
-  std::sort(sorted.begin(), sorted.end());
-  for (std::size_t i{}; i < sorted.size(); ++i) {
-    STEPIT_ASSERT_EQ(sorted[i], i, "Joint order continuity check failed.");
-  }
-  if (joint_reversed_.empty()) {
-    joint_reversed_.resize(joint_order_.size(), false);
+  if (order_node.hasValue()) {
+    order_node.assertSequence(policy_spec.dof);
+    order_node.to(joint_order_);
+
+    auto sorted = joint_order_;
+    std::sort(sorted.begin(), sorted.end());
+    for (std::size_t i{}; i < sorted.size(); ++i) {
+      order_node.require(sorted[i] == i, "Joint order continuity check failed.");
+    }
   } else {
-    STEPIT_ASSERT_EQ(joint_order_.size(), joint_reversed_.size(), "Sizes of 'order' and 'reversed' mismatch.");
+    joint_order_.resize(policy_spec.dof);
+    std::iota(joint_order_.begin(), joint_order_.end(), 0);
+  }
+
+  if (reversed_node.hasValue()) {
+    reversed_node.assertSequence(policy_spec.dof);
+    reversed_node.to(joint_reversed_);
+  } else {
+    joint_reversed_.resize(policy_spec.dof, false);
   }
 
   joint_pos_id_ = registerRequirement("joint_pos");
@@ -47,18 +57,28 @@ bool JointReordering::update(const LowState &, ControlRequests &, FieldMap &cont
 
 ActionReordering::ActionReordering(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
     : Module(policy_spec, ModuleSpec(module_spec, "joint_reordering/action")) {
-  config_["order"].to(joint_order_);
-  config_["reversed"].to(joint_reversed_, true);
+  yml::Node order_node    = config_["order"];
+  yml::Node reversed_node = config_["reversed"];
 
-  auto sorted = joint_order_;
-  std::sort(sorted.begin(), sorted.end());
-  for (std::size_t i{}; i < sorted.size(); ++i) {
-    STEPIT_ASSERT_EQ(sorted[i], i, "Joint order continuity check failed.");
-  }
-  if (joint_reversed_.empty()) {
-    joint_reversed_.resize(joint_order_.size(), false);
+  if (order_node.hasValue()) {
+    order_node.assertSequence(policy_spec.dof);
+    order_node.to(joint_order_);
+
+    auto sorted = joint_order_;
+    std::sort(sorted.begin(), sorted.end());
+    for (std::size_t i{}; i < sorted.size(); ++i) {
+      order_node.require(sorted[i] == i, "Joint order continuity check failed.");
+    }
   } else {
-    STEPIT_ASSERT_EQ(joint_order_.size(), joint_reversed_.size(), "Sizes of 'order' and 'reversed' mismatch.");
+    joint_order_.resize(policy_spec.dof);
+    std::iota(joint_order_.begin(), joint_order_.end(), 0);
+  }
+
+  if (reversed_node.hasValue()) {
+    reversed_node.assertSequence(policy_spec.dof);
+    reversed_node.to(joint_reversed_);
+  } else {
+    joint_reversed_.resize(policy_spec.dof, false);
   }
 
   action_id_ = registerRequirement("action");
