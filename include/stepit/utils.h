@@ -2,6 +2,7 @@
 #define STEPIT_UTILS_H_
 
 #include <numeric>
+#include <vector>
 
 #include <boost/filesystem.hpp>
 
@@ -35,7 +36,7 @@ bool getenv(const std::string &name, T &result, bool verbose = true) {
   return getenv(name.c_str(), result, verbose);
 }
 
-std::string getGlobalConfigDir(const std::string &relative_path = "");
+const std::vector<std::string> &getConfigSearchPaths();
 
 yml::Node loadGlobalConfigYaml(const std::string &relative_path);
 

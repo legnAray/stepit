@@ -70,15 +70,21 @@ void UsbJoystick::connectHandler(std::shared_ptr<gamepad::device> dev) {
     keymap_ = getXboxKeymap();
   } else {
     bool found = false;
-    // Search for the keymap file in the config directory
-    for (const auto &entry : fs::directory_iterator(getGlobalConfigDir("joystick"))) {
-      if (entry.path().extension() != ".yml") continue;
-      std::string stem = toLowercase(entry.path().stem().string());
-      if (name.find(stem) != std::string::npos) {
-        keymap_ = Keymap{yml::loadFile(entry.path().string())};
-        found   = true;
-        break;
+    // Search keymaps from higher-priority config directories to lower-priority ones.
+    for (const auto &config_dir : getConfigSearchPaths()) {
+      fs::path joystick_dir = fs::path(config_dir) / "joystick";
+      if (not fs::exists(joystick_dir) or not fs::is_directory(joystick_dir)) continue;
+
+      for (const auto &entry : fs::directory_iterator(joystick_dir)) {
+        if (entry.path().extension() != ".yml") continue;
+        std::string stem = toLowercase(entry.path().stem().string());
+        if (name.find(stem) != std::string::npos) {
+          keymap_ = Keymap{yml::loadFile(entry.path().string())};
+          found   = true;
+          break;
+        }
       }
+      if (found) break;
     }
     if (not found) {
       STEPIT_WARN("An unsupported joystick '{}' connected. Ignored.", dev->get_name());
