@@ -4,7 +4,7 @@
 
 namespace stepit::neuro_policy {
 CmdVelSubscriber2::CmdVelSubscriber2(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
-    : CmdVelSource(policy_spec, ModuleSpec(module_spec, "cmd_vel_subscriber")) {
+    : CmdVelSource(policy_spec, ModuleSpec(module_spec, "cmd_vel")) {
   yml::Node subscriber_cfg      = config_["cmd_vel_subscriber"];
   auto [topic, topic_type, qos] = parseTopicInfo(subscriber_cfg, "cmd_vel", "geometry_msgs/msg/Twist");
   subscriber_cfg["timeout_threshold"].to(timeout_threshold_, true);

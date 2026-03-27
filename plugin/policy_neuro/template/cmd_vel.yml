@@ -1,4 +1,5 @@
-velocity_scale_factor: [ 1.0, 0.5, 1.0 ]  # [Optional] Tuple[Float, Float, Float], scaling factors of cmd_vel
+velocity_scale_factor: [ 1.0, 0.5, 1.0 ]  # [Optional] Tuple[Union[Float, Tuple[Float, Float]], ...] for [vx, vy, wz];
+                                          #   each item can be a single scale or [positive_scale, negative_scale]
 velocity_turbo_factor: [ 1.0, 1.0, 1.0 ]  # [Optional] Tuple[Float, Float, Float], turbo scaling factors of cmd_vel
 velocity_deadzone: 0.1                    # [Optional] Float, if each dimension of cmd_vel is below this value, it will be set to zero
 smoothing: false                          # [Optional] Bool, whether to apply smoothing to cmd_vel

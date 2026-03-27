@@ -38,7 +38,7 @@ class CmdVelSource : public Module {
   FieldId cmd_stall_id_{};
   std::vector<JoystickRule> joystick_rules_;
 
-  Arr3f velocity_scale_factor_{1.0, 0.5, 1.0};
+  std::vector<Arr2f> velocity_scale_factor_{{1.0, 1.0}, {0.5, 0.5}, {1.0, 1.0}};
   Arr3f velocity_turbo_factor_{Arr3f::Ones()};
   float velocity_deadzone_{0.1};
   bool smoothing_{false};

@@ -6,7 +6,7 @@
 namespace stepit {
 namespace neuro_policy {
 CmdVelSubscriber::CmdVelSubscriber(const NeuroPolicySpec &policy_spec, const ModuleSpec &module_spec)
-    : CmdVelSource(policy_spec, ModuleSpec(module_spec, "cmd_vel_subscriber")) {
+    : CmdVelSource(policy_spec, ModuleSpec(module_spec, "cmd_vel")) {
   yml::Node subscriber_cfg = config_["cmd_vel_subscriber"];
   subscriber_cfg["timeout_threshold"].to(timeout_threshold_, true);
   subscriber_cfg["default_enabled"].to(default_subscriber_enabled_, true);

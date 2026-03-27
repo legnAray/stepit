@@ -113,9 +113,14 @@ void CmdVelSource::handleControlRequest(ControlRequest request) {
         target_cmd_vel_ = Arr3f{vx, vy, wz};
       } else {
         Vec3f unscaled_cmd_vel{vx, vy, wz};
+        Arr3f velocity_scale_factor;
         unscaled_cmd_vel = unscaled_cmd_vel / std::max(1.0F, unscaled_cmd_vel.norm());  // clamp norm to 1.0
-        target_cmd_vel_  = unscaled_cmd_vel.array()
-                              .cwiseProduct(velocity_scale_factor_)
+        for (Eigen::Index i{}; i < velocity_scale_factor.size(); ++i) {
+          velocity_scale_factor[i] = unscaled_cmd_vel[i] >= 0.0F ? velocity_scale_factor_[i][0]
+                                                                 : velocity_scale_factor_[i][1];
+        }
+        target_cmd_vel_ = unscaled_cmd_vel.array()
+                              .cwiseProduct(velocity_scale_factor)
                               .cwiseProduct(1 + velocity_turbo_factor_ * velocity_turbo_ratio_);
       }
       request.response(kSuccess);
