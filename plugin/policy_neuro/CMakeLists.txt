@@ -16,7 +16,7 @@ stepit_add_plugin(${PROJECT_NAME}
       src/odometry_source.cpp
       src/proprioceptor.cpp
       src/subscriber_action.cpp
-      src/time_step_source.cpp
+      src/time_source.cpp
     INCLUDES
       include
     FLAGS

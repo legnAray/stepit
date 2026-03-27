@@ -41,10 +41,10 @@ StepIt plugin for running neural network-based policy.
   | `neuro`                  | Runs a generic neural module from configured I/O.   |
   | `proprioceptor`          | Provides proprioceptive observations.               |
   | `roll_pitch_source`      | Provides the roll and pitch observations.           |
-  | `time_step_source`       | Provides monotonically increasing timestep index.   |
+  | `time_source`            | Provides step count and current policy time.        |
 
   These are module factory names. Auto-resolved field sources still use field names such as
-  `cmd_vel`, `roll_pitch`, `time_step`, `heightmap`, and `base_global_pos`.
+  `cmd_vel`, `roll_pitch`, `step_count`, `heightmap`, and `base_global_pos`.
 
 ### Control Commands
 
