@@ -34,6 +34,8 @@ bool CmdVelSubscriber::update(const LowState &low_state, ControlRequests &reques
     } else {
       target_cmd_vel_.setZero();
     }
+  } else {
+    target_cmd_vel_.setZero();
   }
   return CmdVelSource::update(low_state, requests, context);
 }
