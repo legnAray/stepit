@@ -13,6 +13,12 @@ if (NOT HIREDIS_FOUND)
   return()
 endif ()
 
+find_package(nlohmann_json QUIET)
+if (NOT nlohmann_json_FOUND)
+  message(STATUS "Skipped plugin '${PROJECT_NAME}': Missing nlohmann_json.")
+  return()
+endif ()
+
 stepit_add_plugin(${PROJECT_NAME}
     SOURCES
       src/field_subscriber_redis.cpp
@@ -22,6 +28,7 @@ stepit_add_plugin(${PROJECT_NAME}
       ${HIREDIS_INCLUDE_DIRS}
     LINK_LIBS
       ${HIREDIS_LIBRARIES}
+      nlohmann_json::nlohmann_json
     LINK_DIRS
       ${HIREDIS_LIBRARY_DIRS}
     FLAGS

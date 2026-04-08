@@ -26,14 +26,12 @@ class RedisFieldSubscriber : public Module {
     std::string redis_field;
     std::size_t size{};
     float timeout_threshold{};
-    std::string separator{"auto"};
 
     bool received{false};
     TimePoint stamp{};
     VecXf data;
   };
 
-  void parseConnectionConfig();
   void parseFields();
   void addField(const yml::Node &key_node, const yml::Node &value_node);
 
@@ -46,7 +44,6 @@ class RedisFieldSubscriber : public Module {
   RedisClientConfig connection_;
   std::vector<FieldData> fields_;
   std::unique_ptr<RedisClient> redis_client_;
-  std::string default_separator_{"auto"};
   std::mutex mutex_;
 };
 }  // namespace neuro_policy

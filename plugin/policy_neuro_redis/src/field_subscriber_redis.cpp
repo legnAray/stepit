@@ -1,6 +1,6 @@
-#include <sstream>
-
 #include <stepit/policy_neuro_redis/field_subscriber_redis.h>
+
+#include <nlohmann/json.hpp>
 
 namespace stepit {
 namespace neuro_policy {
@@ -8,7 +8,7 @@ RedisFieldSubscriber::RedisFieldSubscriber(const NeuroPolicySpec &policy_spec, c
     : Module(policy_spec, ModuleSpec(module_spec, "redis_field_subscriber")) {
   config_.assertMap();
   config_.assertHasValue("connection", "fields");
-  parseConnectionConfig();
+  connection_   = RedisClientConfig(config_["connection"]);
   redis_client_ = std::make_unique<RedisClient>(name(), connection_);
   parseFields();
   STEPIT_ASSERT(not fields_.empty(), "Module '{}' requires at least one Redis field mapping.", name());
@@ -48,12 +48,6 @@ void RedisFieldSubscriber::exit() {
   redis_client_->disconnect();
 }
 
-void RedisFieldSubscriber::parseConnectionConfig() {
-  const auto connection_node = config_["connection"];
-  connection_                = RedisClientConfig(connection_node);
-  connection_node["separator"].to(default_separator_, true);
-}
-
 void RedisFieldSubscriber::parseFields() {
   const auto fields_node = config_["fields"];
   fields_node.assertMap();
@@ -73,8 +67,6 @@ void RedisFieldSubscriber::addField(const yml::Node &key_node, const yml::Node &
   value_node["field"].to(field.redis_field, true);
   value_node["size"].to(field.size);
   value_node["timeout_threshold"].to(field.timeout_threshold, true);
-  field.separator = default_separator_;
-  value_node["separator"].to(field.separator, true);
 
   STEPIT_ASSERT(field.size > 0, "Redis field '{}' must have a positive size, got {}.", field.name, field.size);
 
@@ -114,56 +106,34 @@ bool RedisFieldSubscriber::parseFieldValue(const FieldData &field, const std::st
     return false;
   }
 
-  if (normalized.size() >= 2) {
-    const char first = normalized.front();
-    const char last  = normalized.back();
-    if ((first == '[' and last == ']') or (first == '(' and last == ')')) {
-      normalized = trim(normalized.substr(1, normalized.size() - 2));
-    }
-  }
-
-  std::vector<float> values;
   try {
-    if (field.separator.empty() or field.separator == "auto") {
-      for (auto &ch : normalized) {
-        if (ch == ',' or ch == ';' or ch == '\t' or ch == '\n' or ch == '\r') ch = ' ';
-      }
-
-      std::stringstream stream(normalized);
-      std::string token;
-      while (stream >> token) {
-        values.push_back(std::stof(token));
-      }
-    } else {
-      std::size_t begin = 0;
-      while (begin <= normalized.size()) {
-        std::size_t end = normalized.find(field.separator, begin);
-        auto token      = trim(normalized.substr(begin, end - begin));
-        if (token.empty()) {
-          STEPIT_WARN("Redis field '{}' ({}) contains an empty token in '{}'.", field.name, formatRedisField(field),
-                      value);
-          return false;
-        }
-        values.push_back(std::stof(token));
-        if (end == std::string::npos) break;
-        begin = end + field.separator.size();
-      }
+    const auto payload = nlohmann::json::parse(normalized);
+    if (not payload.is_array()) {
+      STEPIT_WARN("Redis field '{}' ({}) must be a JSON array, got {} from '{}'.", field.name, formatRedisField(field),
+                  payload.type_name(), value);
+      return false;
     }
-  } catch (const std::exception &err) {
+
+    if (payload.size() != field.size) {
+      STEPIT_WARN("Redis field '{}' ({}) has unexpected size: expected {}, got {} from '{}'.", field.name,
+                  formatRedisField(field), field.size, payload.size(), value);
+      return false;
+    }
+
+    data.resize(static_cast<Eigen::Index>(payload.size()));
+    for (std::size_t i = 0; i < payload.size(); ++i) {
+      const auto &item = payload[i];
+      if (not item.is_number()) {
+        STEPIT_WARN("Redis field '{}' ({}) expects numeric JSON array elements, but index {} is {} in '{}'.",
+                    field.name, formatRedisField(field), i, item.type_name(), value);
+        return false;
+      }
+      data[static_cast<Eigen::Index>(i)] = item.get<float>();
+    }
+  } catch (const nlohmann::json::exception &err) {
     STEPIT_WARN("Failed to parse Redis field '{}' ({}) from '{}': {}.", field.name, formatRedisField(field), value,
                 err.what());
     return false;
-  }
-
-  if (values.size() != field.size) {
-    STEPIT_WARN("Redis field '{}' ({}) has unexpected size: expected {}, got {} from '{}'.", field.name,
-                formatRedisField(field), field.size, values.size(), value);
-    return false;
-  }
-
-  data.resize(static_cast<Eigen::Index>(values.size()));
-  for (std::size_t i = 0; i < values.size(); ++i) {
-    data[static_cast<Eigen::Index>(i)] = values[i];
   }
   return true;
 }

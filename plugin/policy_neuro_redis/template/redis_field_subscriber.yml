@@ -1,24 +1,21 @@
 # Redis-backed fields to provide to the policy
 
-connection:                    # Required, Redis connection settings
-  host: "127.0.0.1"           # [Optional] String, Redis host
-  port: 6379                   # [Optional] Int, Redis TCP port
-  db: 0                        # [Optional] Int, Redis database index
-  username: ""                # [Optional] String, ACL username
-  password: ""                # [Optional] String, Redis password
-  connect_timeout_ms: 1000     # [Optional] Int >= 0, connect timeout in milliseconds
-  command_timeout_ms: 50       # [Optional] Int >= 0, command timeout in milliseconds
-  separator: "auto"           # [Optional] String, default parser separator for all fields
+connection:                 # Required, Redis connection settings
+  host: "127.0.0.1"         # [Optional] String, Redis host
+  port: 6379                # [Optional] Int, Redis TCP port
+  db: 0                     # [Optional] Int, Redis database index
+  username: ""              # [Optional] String, ACL username
+  password: ""              # [Optional] String, Redis password
+  connect_timeout_ms: 1000  # [Optional] Int >= 0, connect timeout in milliseconds
+  command_timeout_ms: 50    # [Optional] Int >= 0, command timeout in milliseconds
 
-fields:                        # Required, Map[String, Dict]
-  cmd_vel:                     # String, StepIt field name
-    key: "stepit:policy"      # String, Redis key
-    field: "cmd_vel"          # [Optional] String, Redis hash field; if missing, use GET key
-    size: 3                    # Int > 0, field dimension
-    timeout_threshold: 0.2     # [Optional] Float, seconds before the cached value is considered stale
-    separator: "auto"         # [Optional] String, overrides default separator for this field
-                               #   "auto" accepts spaces, commas, semicolons, tabs and newlines
-                               #   and also supports text like "[0.1, 0.2, 0.3]"
+fields:                     # Required, Map[String, Dict]
+  cmd_vel:                  # String, StepIt field name
+    key: "stepit:policy"    # String, Redis key
+    field: "cmd_vel"        # [Optional] String, Redis hash field; if missing, use GET key
+    size: 3                 # Int > 0, field dimension
+    timeout_threshold: 0.2  # [Optional] Float, seconds before the cached value is considered stale
+                            #   Redis value must be a JSON array, e.g. [0.1, 0.2, 0.3]
 
   gait_phase:
     key: "stepit:gait_phase"
