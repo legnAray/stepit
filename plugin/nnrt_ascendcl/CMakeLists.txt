@@ -1,11 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(stepit_plugin_nnrt_ascendcl)
 
-get_library_directory(ascendcl ASCENDCL_DIR)
-if (NOT ASCENDCL_DIR)
-  message(STATUS "Skipped plugin ${PROJECT_NAME}: Missing AscendCL.")
-  return()
-endif ()
+get_library_directory(ascendcl ASCENDCL_DIR REQUIRED)
 
 stepit_add_plugin(${PROJECT_NAME}
     SOURCES src/ascendcl.cpp

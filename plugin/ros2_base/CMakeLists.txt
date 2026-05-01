@@ -3,11 +3,7 @@ project(stepit_plugin_ros2_base)
 set(CMAKE_CXX_STANDARD 17)
 
 # find dependencies
-find_package(ament_cmake QUIET)
-if (NOT ament_cmake_FOUND)
-  message(STATUS "Skipped plugin '${PROJECT_NAME}': Missing ament_cmake.")
-  return()
-endif ()
+find_package(ament_cmake REQUIRED)
 find_package(diagnostic_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(rclcpp REQUIRED)

@@ -7,11 +7,7 @@ project(stepit_plugin_ros_base)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin QUIET COMPONENTS roscpp sensor_msgs std_msgs stepit_ros_msgs)
-if (NOT catkin_FOUND)
-  message(STATUS "Skipped plugin '${PROJECT_NAME}': Missing catkin.")
-  return()
-endif ()
+find_package(catkin REQUIRED COMPONENTS roscpp sensor_msgs std_msgs stepit_ros_msgs)
 if (NOT stepit_ros_msgs_FOUND)
   add_subdirectory(${STEPIT_HOME_DIRECTORY}/package/ros/stepit_ros_msgs ../stepit_ros_msgs)
 endif ()

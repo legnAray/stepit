@@ -8,6 +8,7 @@ A typical plugin directory layout:
 
 ```text
 my_plugin/
+├── stepit_plugin_manifest.cmake
 ├── CMakeLists.txt
 ├── include/
 │   └── stepit/
@@ -19,7 +20,21 @@ my_plugin/
 
 ## 2. Dependencies & Build (`CMakeLists.txt`)
 
-Use the `stepit_add_plugin` macro to define your plugin.
+StepIt discovers plugins by the presence of `stepit_plugin_manifest.cmake`.
+Each manifest must declare the plugin name and plugin dependencies with `stepit_declare_plugin(...)`.
+
+Use plain CMake logic in the manifest:
+
+```cmake
+stepit_declare_plugin(NAME my_plugin DEPENDS field_base)
+find_package(Python3 QUIET COMPONENTS Interpreter Development)
+if (NOT Python3_FOUND)
+  stepit_plugin_mark_unbuildable("Missing Python3 interpreter or development files.")
+  return()
+endif ()
+```
+
+Then use the `stepit_add_plugin` macro in `CMakeLists.txt` to define the target.
 
 ```cmake
 cmake_minimum_required(VERSION 3.16)

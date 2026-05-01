@@ -2,16 +2,8 @@ cmake_minimum_required(VERSION 3.16)
 project(stepit_plugin_robot_unitree2_ros2)
 
 # find dependencies
-find_package(ament_cmake QUIET)
-if (NOT ament_cmake_FOUND)
-  message(STATUS "Skipped plugin '${PROJECT_NAME}': Missing ament_cmake.")
-  return()
-endif ()
-find_package(unitree_go QUIET)
-if (NOT unitree_go_FOUND)
-  message(STATUS "Skipped plugin '${PROJECT_NAME}': Missing unitree_go.")
-  return()
-endif ()
+find_package(ament_cmake REQUIRED)
+find_package(unitree_go REQUIRED)
 
 stepit_add_plugin(${PROJECT_NAME}
     SOURCES src/joystick.cpp src/quadruped.cpp

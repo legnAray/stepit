@@ -7,19 +7,14 @@ endif ()
 
 project(stepit_plugin_robot_unitree_${STEPIT_UNITREE_ROBOT})
 
-get_library_directory(lcm LCM_DIR)
-if (NOT LCM_DIR)
-  message(STATUS "Skipped plugin '${PROJECT_NAME}': Missing LCM.")
-  return()
-endif ()
+get_library_directory(lcm LCM_DIR REQUIRED)
 
 if (CMAKE_SYSTEM_PROCESSOR STREQUAL "x86_64")
   set(ARCH amd64)
 elseif (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
   set(ARCH arm64)
 else ()
-  message(STATUS "Skipped plugin '${PROJECT_NAME}': Requires x86_64 or aarch64 architectures, got '${CMAKE_SYSTEM_PROCESSOR}'.")
-  return()
+  message(FATAL_ERROR "Unsupported architecture '${CMAKE_SYSTEM_PROCESSOR}' for ${PROJECT_NAME}.")
 endif ()
 
 init_submodule(extern/robot_sdk/unitree_${STEPIT_UNITREE_ROBOT}_sdk WORKING_DIRECTORY ${STEPIT_HOME_DIRECTORY})

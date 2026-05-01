@@ -3,18 +3,11 @@ project(stepit_plugin_policy_neuro_ros2)
 set(CMAKE_CXX_STANDARD 17)
 
 # find dependencies
-find_package(ament_cmake QUIET)
-if (NOT ament_cmake_FOUND)
-  message(STATUS "Skipped plugin '${PROJECT_NAME}': Missing ament_cmake.")
-  return()
-endif ()
+find_package(ament_cmake REQUIRED)
 
-find_package(geometry_msgs REQUIRED)
 find_package(grid_map_msgs REQUIRED)
 find_package(grid_map_ros REQUIRED)
 find_package(nav_msgs REQUIRED)
-find_package(sensor_msgs REQUIRED)
-find_package(std_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 
 stepit_add_plugin(${PROJECT_NAME}
@@ -30,12 +23,9 @@ stepit_add_plugin(${PROJECT_NAME}
       ros2_base
 )
 ament_target_dependencies(${PROJECT_NAME} PUBLIC
-    geometry_msgs
     grid_map_msgs
     grid_map_ros
     nav_msgs
-    sensor_msgs
-    std_msgs
     tf2_ros
 )
 

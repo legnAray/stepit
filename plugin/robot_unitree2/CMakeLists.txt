@@ -1,11 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 project(stepit_plugin_robot_unitree2)
 
-if (NOT CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|aarch64")
-  message(STATUS "Skipped plugin '${PROJECT_NAME}': Requires x86_64 or aarch64 architectures, got '${CMAKE_SYSTEM_PROCESSOR}'.")
-  return()
-endif ()
-
 init_submodule(extern/robot_sdk/unitree_sdk2 WORKING_DIRECTORY ${STEPIT_HOME_DIRECTORY})
 set(UNITREE_SDK2_HOME ${STEPIT_HOME_DIRECTORY}/extern/robot_sdk/unitree_sdk2)
 stepit_add_plugin(${PROJECT_NAME}

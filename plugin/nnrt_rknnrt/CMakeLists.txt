@@ -1,11 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 project(stepit_plugin_nnrt_rknnrt)
 
-get_library_directory(rknnrt RKNNRT_DIR VERBOSE)
-if (NOT RKNNRT_DIR)
-  message(STATUS "Skipped plugin '${PROJECT_NAME}': Missing rknnrt.")
-  return()
-endif ()
+get_library_directory(rknnrt RKNNRT_DIR REQUIRED VERBOSE)
 
 stepit_add_plugin(${PROJECT_NAME}
     SOURCES src/rknnrt.cpp

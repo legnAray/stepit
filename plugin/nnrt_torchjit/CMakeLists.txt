@@ -2,11 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 project(stepit_plugin_nnrt_torchjit)
 set(CMAKE_CXX_STANDARD 17)
 
-find_package(Torch QUIET)
-if (NOT Torch_FOUND)
-  message(STATUS "Skipped plugin '${PROJECT_NAME}': Missing libtorch.")
-  return()
-endif ()
+find_package(Torch REQUIRED)
 
 set(TORCH_PLUGIN_CXX_FLAGS "")
 if (TORCH_CXX_FLAGS)

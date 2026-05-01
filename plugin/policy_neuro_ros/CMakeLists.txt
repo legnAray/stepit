@@ -7,7 +7,7 @@ project(stepit_plugin_policy_neuro_ros)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin QUIET
+find_package(catkin REQUIRED
     COMPONENTS
       geometry_msgs
       grid_map_ros
@@ -16,10 +16,6 @@ find_package(catkin QUIET
       tf2_ros
       topic_tools
 )
-if (NOT catkin_FOUND)
-  message(STATUS "Skipped plugin '${PROJECT_NAME}': Missing catkin.")
-  return()
-endif ()
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)

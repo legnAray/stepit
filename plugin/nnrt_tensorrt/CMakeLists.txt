@@ -1,16 +1,17 @@
 cmake_minimum_required(VERSION 3.16)
 project(stepit_plugin_nnrt_tensorrt)
 
-find_package(CUDA QUIET)
-if (NOT CUDA_FOUND)
-  message(STATUS "Skipped plugin '${PROJECT_NAME}': Missing CUDA.")
-  return()
+if (POLICY CMP0146)
+  cmake_policy(PUSH)
+  cmake_policy(SET CMP0146 OLD)
 endif ()
-get_library_directory(nvinfer TENSORRT_LIB_DIR)
-if (NOT TENSORRT_LIB_DIR)
-  message(STATUS "Skipped plugin '${PROJECT_NAME}': Missing TensorRT.")
-  return()
+
+find_package(CUDA REQUIRED)
+
+if (POLICY CMP0146)
+  cmake_policy(POP)
 endif ()
+get_library_directory(nvinfer TENSORRT_LIB_DIR REQUIRED)
 
 stepit_add_plugin(${PROJECT_NAME}
     SOURCES

@@ -1,0 +1,70 @@
+include(CMakeFindDependencyMacro)
+
+find_dependency(Boost REQUIRED COMPONENTS filesystem program_options)
+find_dependency(Eigen3 REQUIRED)
+find_dependency(Threads REQUIRED)
+find_dependency(yaml-cpp REQUIRED)
+set(llu_DIR "@CMAKE_BINARY_DIR@/extern/llu")
+find_dependency(llu REQUIRED)
+
+set(STEPIT_PACKAGE_MODE TRUE)
+set(STEPIT_HOME_DIRECTORY "@STEPIT_HOME_DIRECTORY@")
+
+include("${CMAKE_CURRENT_LIST_DIR}/stepit_utils.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/stepitDependencies.cmake")
+
+function(_stepit_collect_component_closure output_var)
+  set(queue ${ARGN})
+  set(closure "")
+  while (queue)
+    list(POP_FRONT queue component)
+    if (component STREQUAL "")
+      continue()
+    endif ()
+    if (component IN_LIST closure)
+      continue()
+    endif ()
+    list(APPEND closure ${component})
+    if (DEFINED STEPIT_PLUGIN_DEPENDENCIES_${component} AND
+        NOT STEPIT_PLUGIN_DEPENDENCIES_${component} STREQUAL "")
+      list(APPEND queue ${STEPIT_PLUGIN_DEPENDENCIES_${component}})
+    endif ()
+  endwhile ()
+  set(${output_var} ${closure} PARENT_SCOPE)
+endfunction()
+
+macro(_stepit_include_component component)
+  if (NOT "${component}" STREQUAL "" AND
+      NOT "${component}" STREQUAL "core" AND
+      NOT "${component}" IN_LIST stepit_included_components)
+    if (DEFINED STEPIT_PLUGIN_DEPENDENCIES_${component} AND
+        NOT STEPIT_PLUGIN_DEPENDENCIES_${component} STREQUAL "")
+      foreach (_stepit_dependency ${STEPIT_PLUGIN_DEPENDENCIES_${component}})
+        _stepit_include_component(${_stepit_dependency})
+      endforeach ()
+      unset(_stepit_dependency)
+    endif ()
+    if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/stepit_plugin_${component}Targets.cmake")
+      include("${CMAKE_CURRENT_LIST_DIR}/stepit_plugin_${component}Targets.cmake")
+      set(stepit_${component}_FOUND TRUE)
+    endif ()
+    list(APPEND stepit_included_components ${component})
+  endif ()
+endmacro()
+
+if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/stepit_coreTargets.cmake")
+  include("${CMAKE_CURRENT_LIST_DIR}/stepit_coreTargets.cmake")
+  set(stepit_core_FOUND TRUE)
+endif ()
+
+if (NOT DEFINED stepit_FIND_COMPONENTS OR stepit_FIND_COMPONENTS STREQUAL "")
+  set(stepit_FIND_COMPONENTS core)
+endif ()
+
+_stepit_collect_component_closure(stepit_components ${stepit_FIND_COMPONENTS})
+set(stepit_included_components "")
+foreach (component IN LISTS stepit_components)
+  _stepit_include_component(${component})
+endforeach ()
+
+check_required_components(stepit)

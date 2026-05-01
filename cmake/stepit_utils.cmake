@@ -3,6 +3,37 @@ function(stepit_add_library library_name)
   set_property(GLOBAL APPEND PROPERTY STEPIT_LIBRARIES ${library_name})
 endfunction()
 
+function(stepit_set_plugin_property plugin property_name)
+  if (ARGC GREATER 2)
+    set_property(GLOBAL PROPERTY "STEPIT_PLUGIN_${plugin}_${property_name}" "${ARGN}")
+  else ()
+    set_property(GLOBAL PROPERTY "STEPIT_PLUGIN_${plugin}_${property_name}" "")
+  endif ()
+endfunction()
+
+function(stepit_get_plugin_property plugin property_name output_var)
+  get_property(property_value GLOBAL PROPERTY "STEPIT_PLUGIN_${plugin}_${property_name}")
+  if (NOT DEFINED property_value)
+    set(property_value "")
+  endif ()
+  set(${output_var} "${property_value}" PARENT_SCOPE)
+endfunction()
+
+function(stepit_append_unique_global_property property_name)
+  get_property(property_values GLOBAL PROPERTY ${property_name})
+  if (NOT property_values)
+    set(property_values "")
+  endif ()
+
+  foreach (property_value ${ARGN})
+    if (NOT property_value IN_LIST property_values)
+      list(APPEND property_values ${property_value})
+    endif ()
+  endforeach ()
+
+  set_property(GLOBAL PROPERTY ${property_name} "${property_values}")
+endfunction()
+
 function(stepit_add_plugin plugin_name)
   # assert plugin_name starts with "stepit_plugin_"
   if (NOT plugin_name MATCHES "^stepit_plugin_")
@@ -33,7 +64,16 @@ function(stepit_add_plugin plugin_name)
   )
   set_property(TARGET ${plugin_name} PROPERTY STEPIT_PLUGIN_DEPENDENCIES "${ARG_DEPENDS}")
 
+  string(REGEX REPLACE "^stepit_plugin_" "" plugin_id "${plugin_name}")
   foreach (dependency ${ARG_DEPENDS})
+    if (NOT TARGET stepit_plugin_${dependency})
+      message(
+          FATAL_ERROR
+          "Plugin '${plugin_id}' depends on plugin '${dependency}', "
+          "but target 'stepit_plugin_${dependency}' is unavailable. "
+          "Check the plugin manifest dependency graph."
+      )
+    endif ()
     add_dependencies(${plugin_name} stepit_plugin_${dependency})
     target_link_libraries(${plugin_name} PUBLIC stepit_plugin_${dependency})
   endforeach ()
@@ -43,7 +83,6 @@ function(stepit_add_plugin plugin_name)
     stepit_add_library(${plugin_entry} MODULE ${ARG_ENTRY})
     target_link_libraries(${plugin_entry} PUBLIC ${plugin_name})
   endif ()
-  message(STATUS "Added plugin '${plugin_name}'")
 endfunction()
 
 function(stepit_add_executable executable_name)
@@ -83,6 +122,188 @@ function(get_library_directory library_name output_var)
     set(${output_var} ${library_dir} PARENT_SCOPE)
   elseif (ARG_REQUIRED)
     message(FATAL_ERROR "Library ${library_name} not found.")
+  endif ()
+endfunction()
+
+function(stepit_plugin_mark_unbuildable reason)
+  set(STEPIT_PLUGIN_BUILDABLE FALSE PARENT_SCOPE)
+  set(STEPIT_PLUGIN_REASON "${reason}" PARENT_SCOPE)
+endfunction()
+
+function(stepit_declare_plugin)
+  set(options "")
+  set(oneValueArgs NAME)
+  set(multiValueArgs DEPENDS)
+
+  cmake_parse_arguments(PARSE_ARGV 0 ARG
+      "${options}"
+      "${oneValueArgs}"
+      "${multiValueArgs}"
+  )
+  if (ARG_UNPARSED_ARGUMENTS)
+    message(FATAL_ERROR "Unparsed arguments: ${ARG_UNPARSED_ARGUMENTS}")
+  endif ()
+  if (NOT ARG_NAME)
+    message(FATAL_ERROR "stepit_declare_plugin requires NAME.")
+  endif ()
+
+  set(STEPIT_PLUGIN_NAME "${ARG_NAME}" PARENT_SCOPE)
+  set(STEPIT_PLUGIN_DEPENDS "${ARG_DEPENDS}" PARENT_SCOPE)
+endfunction()
+
+function(stepit_load_plugin_manifest plugin_dir output_var)
+  unset(STEPIT_PLUGIN_NAME)
+  unset(STEPIT_PLUGIN_DEPENDS)
+  set(STEPIT_PLUGIN_BUILDABLE TRUE)
+  set(STEPIT_PLUGIN_REASON "")
+  set(STEPIT_PLUGIN_DIR "${plugin_dir}")
+
+  # Manifests are evaluated in the top-level directory scope, so save and restore
+  # directory properties to keep package find scripts from polluting unrelated targets.
+  get_directory_property(saved_compile_definitions COMPILE_DEFINITIONS)
+  get_directory_property(saved_compile_options COMPILE_OPTIONS)
+  get_directory_property(saved_include_directories INCLUDE_DIRECTORIES)
+  get_directory_property(saved_link_directories LINK_DIRECTORIES)
+  get_directory_property(saved_system_include_directories SYSTEM_INCLUDE_DIRECTORIES)
+
+  include("${plugin_dir}/stepit_plugin_manifest.cmake")
+
+  if (NOT DEFINED STEPIT_PLUGIN_NAME OR STEPIT_PLUGIN_NAME STREQUAL "")
+    message(
+        FATAL_ERROR
+        "Plugin manifest '${plugin_dir}/stepit_plugin_manifest.cmake' "
+        "must call stepit_declare_plugin(NAME <plugin> ...)."
+    )
+  endif ()
+  if (NOT DEFINED STEPIT_PLUGIN_DEPENDS)
+    set(STEPIT_PLUGIN_DEPENDS "")
+  endif ()
+  if (NOT DEFINED STEPIT_PLUGIN_BUILDABLE)
+    set(STEPIT_PLUGIN_BUILDABLE TRUE)
+  endif ()
+  if (NOT DEFINED STEPIT_PLUGIN_REASON)
+    set(STEPIT_PLUGIN_REASON "")
+  endif ()
+
+  set_directory_properties(PROPERTIES
+      COMPILE_DEFINITIONS "${saved_compile_definitions}"
+      COMPILE_OPTIONS "${saved_compile_options}"
+      INCLUDE_DIRECTORIES "${saved_include_directories}"
+      LINK_DIRECTORIES "${saved_link_directories}"
+      SYSTEM_INCLUDE_DIRECTORIES "${saved_system_include_directories}"
+  )
+
+  set(plugin "${STEPIT_PLUGIN_NAME}")
+  stepit_set_plugin_property(${plugin} DIR "${plugin_dir}")
+  stepit_set_plugin_property(${plugin} DEPENDS ${STEPIT_PLUGIN_DEPENDS})
+  stepit_set_plugin_property(${plugin} BUILDABLE ${STEPIT_PLUGIN_BUILDABLE})
+  stepit_set_plugin_property(${plugin} REASON "${STEPIT_PLUGIN_REASON}")
+  set(${output_var} "${plugin}" PARENT_SCOPE)
+endfunction()
+
+function(stepit_resolve_plugin plugin dependency_stack)
+  if (NOT plugin IN_LIST STEPIT_DISCOVERED_PLUGINS)
+    message(FATAL_ERROR "Plugin '${plugin}' is not supported.")
+  endif ()
+
+  stepit_append_unique_global_property(STEPIT_RESOLVED_PLUGINS ${plugin})
+
+  stepit_get_plugin_property(${plugin} STATUS current_status)
+  if (current_status STREQUAL "buildable" OR
+      current_status STREQUAL "built" OR
+      current_status STREQUAL "skipped")
+    return()
+  endif ()
+
+  if (plugin IN_LIST dependency_stack)
+    list(APPEND dependency_stack ${plugin})
+    string(REPLACE ";" " -> " cycle_text "${dependency_stack}")
+    message(FATAL_ERROR "Detected plugin dependency cycle: ${cycle_text}")
+  endif ()
+
+  list(APPEND dependency_stack ${plugin})
+
+  if (NOT plugin IN_LIST STEPIT_ENABLED_PLUGINS)
+    stepit_set_plugin_property(${plugin} STATUS "skipped")
+    stepit_set_plugin_property(${plugin} REASON "Plugin '${plugin}' is blacklisted.")
+    stepit_set_plugin_property(${plugin} CHAIN ${plugin})
+    return()
+  endif ()
+
+  stepit_get_plugin_property(${plugin} BUILDABLE plugin_buildable)
+  stepit_get_plugin_property(${plugin} REASON plugin_reason)
+  if (NOT plugin_buildable)
+    stepit_set_plugin_property(${plugin} STATUS "skipped")
+    stepit_set_plugin_property(${plugin} REASON "${plugin_reason}")
+    stepit_set_plugin_property(${plugin} CHAIN ${plugin})
+    return()
+  endif ()
+
+  stepit_get_plugin_property(${plugin} DEPENDS plugin_dependencies)
+  foreach (dependency ${plugin_dependencies})
+    if (NOT dependency IN_LIST STEPIT_DISCOVERED_PLUGINS)
+      message(
+          FATAL_ERROR
+          "Plugin '${plugin}' declares unknown dependency '${dependency}'."
+      )
+    endif ()
+
+    stepit_resolve_plugin(${dependency} "${dependency_stack}")
+    stepit_get_plugin_property(${dependency} STATUS dependency_status)
+    if (NOT dependency_status STREQUAL "buildable" AND
+        NOT dependency_status STREQUAL "built")
+      stepit_mark_plugin_skipped_due_to_dependency(${plugin} ${dependency})
+      return()
+    endif ()
+  endforeach ()
+
+  stepit_set_plugin_property(${plugin} STATUS "buildable")
+  stepit_set_plugin_property(${plugin} REASON "")
+  stepit_set_plugin_property(${plugin} CHAIN ${plugin})
+  stepit_append_unique_global_property(STEPIT_BUILDABLE_PLUGIN_ORDER ${plugin})
+endfunction()
+
+function(stepit_mark_plugin_skipped_due_to_dependency plugin dependency)
+  stepit_set_plugin_property(${plugin} STATUS "skipped")
+  stepit_set_plugin_property(${plugin} REASON "Dependency plugin '${dependency}' is skipped.")
+  stepit_set_plugin_property(${plugin} CHAIN ${plugin} ${dependency})
+endfunction()
+
+function(stepit_print_plugin_report)
+  get_property(built_plugins GLOBAL PROPERTY STEPIT_BUILT_PLUGINS)
+  if (NOT built_plugins)
+    set(built_plugins "")
+  endif ()
+  set(skipped_plugins "")
+
+  foreach (plugin ${ARGN})
+    stepit_get_plugin_property(${plugin} STATUS plugin_status)
+    if (plugin_status STREQUAL "skipped")
+      list(APPEND skipped_plugins ${plugin})
+    endif ()
+  endforeach ()
+
+  if (built_plugins)
+    message(STATUS "Built stepit plugins in order:")
+    foreach (plugin ${built_plugins})
+      message(STATUS "  ${plugin}")
+    endforeach ()
+  else ()
+    message(STATUS "Built stepit plugins in order: none")
+  endif ()
+
+  if (skipped_plugins)
+    message(STATUS "Skipped stepit plugins:")
+    foreach (plugin ${skipped_plugins})
+      stepit_get_plugin_property(${plugin} REASON plugin_reason)
+      stepit_get_plugin_property(${plugin} CHAIN plugin_chain)
+      if (plugin_chain)
+        string(REPLACE ";" " -> " plugin_chain_text "${plugin_chain}")
+        message(STATUS "  ${plugin_chain_text}: ${plugin_reason}")
+      else ()
+        message(STATUS "  ${plugin}: ${plugin_reason}")
+      endif ()
+    endforeach ()
   endif ()
 endfunction()
 
