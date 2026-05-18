@@ -67,19 +67,20 @@ void CmdRollSubscriber::callback(const ros::MessageEvent<const topic_tools::Shap
 void CmdRollSubscriber::handleControlRequest(ControlRequest request) {
   switch (lookupAction(request.action(), kSubscriberActionMap)) {
     case SubscriberAction::kEnableSubscriber:
-      cmd_roll_msg_ = {};
       subscriber_enabled_.store(true, std::memory_order_release);
       request.response(kSuccess);
       STEPIT_LOG(kStartSubscribingTemplate, "command roll");
       break;
     case SubscriberAction::kDisableSubscriber:
       subscriber_enabled_.store(false, std::memory_order_relaxed);
+      cmd_roll_ = 0.0F;
       request.response(kSuccess);
       STEPIT_LOG(kStopSubscribingTemplate, "command roll");
       break;
     case SubscriberAction::kSwitchSubscriber: {
       bool subscriber_enabled = not subscriber_enabled_.load(std::memory_order_relaxed);
       subscriber_enabled_.store(subscriber_enabled, std::memory_order_relaxed);
+      if (not subscriber_enabled) cmd_roll_ = 0.0F;
       request.response(kSuccess);
       STEPIT_LOG(subscriber_enabled ? kStartSubscribingTemplate : kStopSubscribingTemplate, "command roll");
       break;
@@ -157,19 +158,20 @@ void CmdPitchSubscriber::callback(const ros::MessageEvent<const topic_tools::Sha
 void CmdPitchSubscriber::handleControlRequest(ControlRequest request) {
   switch (lookupAction(request.action(), kSubscriberActionMap)) {
     case SubscriberAction::kEnableSubscriber:
-      cmd_pitch_msg_ = {};
       subscriber_enabled_.store(true, std::memory_order_release);
       request.response(kSuccess);
       STEPIT_LOG(kStartSubscribingTemplate, "command pitch");
       break;
     case SubscriberAction::kDisableSubscriber:
       subscriber_enabled_.store(false, std::memory_order_relaxed);
+      cmd_pitch_ = 0.0F;
       request.response(kSuccess);
       STEPIT_LOG(kStopSubscribingTemplate, "command pitch");
       break;
     case SubscriberAction::kSwitchSubscriber: {
       bool subscriber_enabled = not subscriber_enabled_.load(std::memory_order_relaxed);
       subscriber_enabled_.store(subscriber_enabled, std::memory_order_relaxed);
+      if (not subscriber_enabled) cmd_pitch_ = 0.0F;
       request.response(kSuccess);
       STEPIT_LOG(subscriber_enabled ? kStartSubscribingTemplate : kStopSubscribingTemplate, "command pitch");
       break;
@@ -247,19 +249,20 @@ void CmdHeightSubscriber::callback(const ros::MessageEvent<const topic_tools::Sh
 void CmdHeightSubscriber::handleControlRequest(ControlRequest request) {
   switch (lookupAction(request.action(), kSubscriberActionMap)) {
     case SubscriberAction::kEnableSubscriber:
-      cmd_height_msg_ = {};
       subscriber_enabled_.store(true, std::memory_order_release);
       request.response(kSuccess);
       STEPIT_LOG(kStartSubscribingTemplate, "command height");
       break;
     case SubscriberAction::kDisableSubscriber:
       subscriber_enabled_.store(false, std::memory_order_relaxed);
+      cmd_height_ = default_cmd_height_;
       request.response(kSuccess);
       STEPIT_LOG(kStopSubscribingTemplate, "command height");
       break;
     case SubscriberAction::kSwitchSubscriber: {
       bool subscriber_enabled = not subscriber_enabled_.load(std::memory_order_relaxed);
       subscriber_enabled_.store(subscriber_enabled, std::memory_order_relaxed);
+      if (not subscriber_enabled) cmd_height_ = default_cmd_height_;
       request.response(kSuccess);
       STEPIT_LOG(subscriber_enabled ? kStartSubscribingTemplate : kStopSubscribingTemplate, "command height");
       break;

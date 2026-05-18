@@ -296,6 +296,10 @@ void Agent::onExit(State curr_state) {
       communication_.setFrozen(false);
       break;
     case State::kPolicy:
+      for (auto &&request : policy_requests_) {
+        request.response(kNotInCorrectState, "Policy stopped before the request was handled.");
+      }
+      policy_requests_.clear();
       active_policy_->exit();
       if (policy_timer_.count() > 0) {
         STEPIT_LOG("Average policy time: {}.", policy_timer_.mean<USec>());
