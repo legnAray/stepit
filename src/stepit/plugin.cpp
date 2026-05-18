@@ -124,6 +124,7 @@ std::string PluginManager::getPluginName(const std::string &path) {
 
   if (startsWith(name, kPluginPrefix)) name = name.substr(prefix_len);
   if (endsWith(name, kPluginSuffix)) name = name.substr(0, name.size() - suffix_len);
+  if (endsWith(name, kPluginEntrySuffix)) name = name.substr(0, name.size() - std::strlen(kPluginEntrySuffix));
   return name;
 }
 

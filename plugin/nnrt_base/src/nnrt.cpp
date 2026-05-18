@@ -52,7 +52,9 @@ void NnrtApi::postInit() {
   if (not input_names_key.empty()) {
     std::vector<std::string> in_names;
     config_[input_names_key].to(in_names);
-    for (int i{}; i < num_in_; ++i) {
+    STEPIT_ASSERT_EQ(in_names.size(), num_in_, "'{}' count mismatch: expected {}, got {}.", input_names_key, num_in_,
+                     in_names.size());
+    for (std::size_t i{}; i < num_in_; ++i) {
       if (in_names_[i] != in_names[i]) {
         STEPIT_DBUGNT("Input {} renamed from '{}' to '{}'.", i, in_names_[i], in_names[i]);
         in_names_[i] = in_names[i];
@@ -64,7 +66,9 @@ void NnrtApi::postInit() {
   if (not output_names_key.empty()) {
     std::vector<std::string> out_names;
     config_[output_names_key].to(out_names);
-    for (int i{}; i < num_out_; ++i) {
+    STEPIT_ASSERT_EQ(out_names.size(), num_out_, "'{}' count mismatch: expected {}, got {}.", output_names_key,
+                     num_out_, out_names.size());
+    for (std::size_t i{}; i < num_out_; ++i) {
       if (out_names_[i] != out_names[i]) {
         STEPIT_DBUGNT("Output {} renamed from '{}' to '{}'.", i, out_names_[i], out_names[i]);
         out_names_[i] = out_names[i];
