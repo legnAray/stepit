@@ -2,10 +2,11 @@
 #include <cerrno>
 #include <chrono>
 #include <cstdlib>
+
 #include <fcntl.h>
+#include <unistd.h>
 #include <linux/joystick.h>
 #include <sys/ioctl.h>
-#include <unistd.h>
 
 #include <stepit/utils.h>
 #include <stepit/joystick/usb.h>
@@ -13,16 +14,16 @@
 namespace stepit {
 namespace joystick {
 namespace {
-constexpr auto kPollInterval = std::chrono::milliseconds(1);
-constexpr auto kScanInterval = std::chrono::seconds(1);
+constexpr auto kPollInterval          = std::chrono::milliseconds(1);
+constexpr auto kScanInterval          = std::chrono::seconds(1);
 constexpr const char *kInputDirectory = "/dev/input";
 
 bool parseJoystickId(const std::string &name, long &id) {
   if (name.size() <= 2 or name[0] != 'j' or name[1] != 's') return false;
 
-  char *end = nullptr;
+  char *end         = nullptr;
   const char *begin = name.c_str() + 2;
-  long value = std::strtol(begin, &end, 10);
+  long value        = std::strtol(begin, &end, 10);
   if (begin == end or *end != '\0' or value < 0) return false;
 
   id = value;
@@ -40,7 +41,6 @@ void setButtonState(Button &button, bool pressed, bool emit_transient) {
     button.pressed = pressed;
   }
 }
-
 }  // namespace
 
 UsbJoystick::UsbJoystick() {
@@ -59,7 +59,12 @@ UsbJoystick::~UsbJoystick() {
 void UsbJoystick::run() {
   while (running_) {
     if (not connected_) {
-      scanAndConnect();
+      for (const auto &device : listDevices()) {
+        if (not running_ or connected_) break;
+        if (id_ >= 0 and device.id != id_) continue;
+        if (tryConnect(device)) break;
+      }
+
       auto slept = std::chrono::milliseconds(0);
       while (running_ and not connected_ and slept < kScanInterval) {
         std::this_thread::sleep_for(kPollInterval);
@@ -106,14 +111,6 @@ void UsbJoystick::getState(State &state) {
   for (auto &button : slots_.buttons) button.resetTransientStates();
 }
 
-void UsbJoystick::scanAndConnect() {
-  for (const auto &device : listDevices()) {
-    if (not running_ or connected_) return;
-    if (id_ >= 0 and device.id != id_) continue;
-    if (tryConnect(device)) return;
-  }
-}
-
 bool UsbJoystick::tryConnect(const DeviceInfo &device) {
   int fd = ::open(device.path.c_str(), O_RDONLY | O_NONBLOCK);
   if (fd < 0) return false;
@@ -127,25 +124,26 @@ bool UsbJoystick::tryConnect(const DeviceInfo &device) {
   }
 
   Keymap keymap;
-  if (not loadKeymapForDevice(name, keymap)) {
-    if (unsupported_devices_.insert(device.path).second) STEPIT_WARN("An unsupported joystick '{}' connected. Ignored.", name);
+  if (not loadKeymapByName(name, keymap)) {
+    if (ignored_devices_.insert(device.path).second) {
+      STEPIT_WARN("An unsupported joystick '{}' connected. Ignored.", name);
+    }
     ::close(fd);
     return false;
   }
 
   {
     std::lock_guard<std::mutex> lock(mutex_);
-    slots_ = {};
-    keymap_ = keymap;
+    slots_                  = {};
+    keymap_                 = keymap;
     slots_.axes[keymap_.lt] = -1.0f;
     slots_.axes[keymap_.rt] = -1.0f;
   }
 
-  fd_           = fd;
-  rid_          = device.id;
-  device_path_  = device.path;
-  device_name_  = name;
-  connected_    = true;
+  fd_          = fd;
+  device_path_ = device.path;
+  device_name_ = name;
+  connected_   = true;
 
   STEPIT_INFO("Joystick '{}' connected.", device_name_);
   return true;
@@ -159,17 +157,18 @@ std::vector<UsbJoystick::DeviceInfo> UsbJoystick::listDevices() const {
   for (fs::directory_iterator it(kInputDirectory, ec), end; not ec and it != end; it.increment(ec)) {
     if (ec) break;
 
-    long js_id = -1;
+    long js_id                 = -1;
     const std::string filename = it->path().filename().string();
     if (not parseJoystickId(filename, js_id)) continue;
     devices.push_back({js_id, it->path().string()});
   }
 
-  std::sort(devices.begin(), devices.end(), [](const DeviceInfo &lhs, const DeviceInfo &rhs) { return lhs.id < rhs.id; });
+  std::sort(devices.begin(), devices.end(),
+            [](const DeviceInfo &lhs, const DeviceInfo &rhs) { return lhs.id < rhs.id; });
   return devices;
 }
 
-bool UsbJoystick::loadKeymapForDevice(const std::string &device_name, Keymap &keymap) const {
+bool UsbJoystick::loadKeymapByName(const std::string &device_name, Keymap &keymap) const {
   std::string name = toLowercase(device_name);
   if (name.find("x-box") != std::string::npos or name.find("xbox") != std::string::npos) {
     keymap = getXboxKeymap();
@@ -202,7 +201,6 @@ void UsbJoystick::disconnect(bool log_disconnect) {
   }
 
   std::string name = device_name_;
-  rid_             = -1;
   device_path_.clear();
   device_name_.clear();
 

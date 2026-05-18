@@ -29,16 +29,15 @@ class UsbJoystick final : public Joystick {
   };
 
   void run();
-  void scanAndConnect();
   bool tryConnect(const DeviceInfo &device);
   std::vector<DeviceInfo> listDevices() const;
-  bool loadKeymapForDevice(const std::string &name, Keymap &keymap) const;
+  bool loadKeymapByName(const std::string &name, Keymap &keymap) const;
   void disconnect(bool log_disconnect);
   void processEvent(const struct js_event &event);
   void updateAxis(std::size_t aid, float value, bool emit_transient);
   void updateButton(std::size_t bid, bool pressed, bool emit_transient);
 
-  long id_{-1}, rid_{-1};
+  long id_{-1};
   int fd_{-1};
   std::string device_path_;
   std::string device_name_;
@@ -46,7 +45,7 @@ class UsbJoystick final : public Joystick {
   std::mutex mutex_;
   Slots slots_;
   Keymap keymap_;
-  std::set<std::string> unsupported_devices_;
+  std::set<std::string> ignored_devices_;
   std::atomic<bool> connected_{false};
   std::atomic<bool> running_{false};
   std::thread worker_;
