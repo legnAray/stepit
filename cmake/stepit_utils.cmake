@@ -1,50 +1,3 @@
-function(stepit_add_library library_name)
-  add_library(${library_name} ${ARGN})
-  set_property(GLOBAL APPEND PROPERTY STEPIT_LIBRARIES ${library_name})
-endfunction()
-
-function(_stepit_append_usage_include_dir output_var include_dir)
-  set(include_dirs "${${output_var}}")
-  if (IS_ABSOLUTE "${include_dir}")
-    set(include_path "${include_dir}")
-  else ()
-    get_filename_component(include_path "${include_dir}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-  endif ()
-
-  string(FIND "${include_path}" "${STEPIT_HOME_DIRECTORY}" source_prefix_index)
-  string(FIND "${include_path}" "${CMAKE_BINARY_DIR}" binary_prefix_index)
-  if (source_prefix_index EQUAL 0 OR binary_prefix_index EQUAL 0)
-    list(APPEND include_dirs "$<BUILD_INTERFACE:${include_path}>")
-  else ()
-    list(APPEND include_dirs "${include_path}")
-  endif ()
-
-  if (NOT IS_ABSOLUTE "${include_dir}")
-    list(APPEND include_dirs "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>")
-  endif ()
-
-  set(${output_var} "${include_dirs}" PARENT_SCOPE)
-endfunction()
-
-function(_stepit_append_usage_link_dir output_var link_dir)
-  set(link_dirs "${${output_var}}")
-  if (IS_ABSOLUTE "${link_dir}")
-    set(link_path "${link_dir}")
-  else ()
-    get_filename_component(link_path "${link_dir}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-  endif ()
-
-  string(FIND "${link_path}" "${STEPIT_HOME_DIRECTORY}" source_prefix_index)
-  string(FIND "${link_path}" "${CMAKE_BINARY_DIR}" binary_prefix_index)
-  if (source_prefix_index EQUAL 0 OR binary_prefix_index EQUAL 0)
-    list(APPEND link_dirs "$<BUILD_INTERFACE:${link_path}>")
-  else ()
-    list(APPEND link_dirs "${link_path}")
-  endif ()
-
-  set(${output_var} "${link_dirs}" PARENT_SCOPE)
-endfunction()
-
 function(stepit_set_plugin_property plugin property_name)
   if (ARGC GREATER 2)
     set_property(GLOBAL PROPERTY "STEPIT_PLUGIN_${plugin}_${property_name}" "${ARGN}")
@@ -77,68 +30,23 @@ function(stepit_append_unique_global_property property_name)
 endfunction()
 
 function(stepit_add_plugin plugin_name)
-  # assert plugin_name starts with "stepit_plugin_"
   if (NOT plugin_name MATCHES "^stepit_plugin_")
     message(FATAL_ERROR "Plugin name must start with 'stepit_plugin_'")
   endif ()
-
-  # argument structure
-  set(options "")
-  set(oneValueArgs "")
-  set(multiValueArgs SOURCES ENTRY INCLUDES LINK_LIBS LINK_DIRS FLAGS DEPENDS)
-
-  cmake_parse_arguments(PARSE_ARGV 1 ARG
-      "${options}"
-      "${oneValueArgs}"
-      "${multiValueArgs}"
-  )
-  if (ARG_UNPARSED_ARGUMENTS)
-    message(FATAL_ERROR "Unparsed arguments: ${ARG_UNPARSED_ARGUMENTS}")
+  if (TARGET ${plugin_name})
+    message(FATAL_ERROR "Plugin target '${plugin_name}' already exists.")
   endif ()
-
-  stepit_add_library(${plugin_name} SHARED ${ARG_SOURCES})
-  set(plugin_include_dirs "")
-  foreach (include_dir ${ARG_INCLUDES})
-    _stepit_append_usage_include_dir(plugin_include_dirs "${include_dir}")
-  endforeach ()
-  target_include_directories(${plugin_name} PUBLIC ${plugin_include_dirs})
-  target_link_libraries(${plugin_name} PUBLIC stepit_core ${ARG_LINK_LIBS})
-  set(plugin_link_dirs "")
-  foreach (link_dir ${ARG_LINK_DIRS})
-    _stepit_append_usage_link_dir(plugin_link_dirs "${link_dir}")
-  endforeach ()
-  target_link_directories(${plugin_name} BEFORE PUBLIC ${plugin_link_dirs})
-  target_compile_options(${plugin_name} PUBLIC ${ARG_FLAGS})
-  set_target_properties(${plugin_name} PROPERTIES
-      INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${ARG_LINK_DIRS}"
-  )
-  set_property(TARGET ${plugin_name} PROPERTY STEPIT_PLUGIN_DEPENDENCIES "${ARG_DEPENDS}")
-
-  string(REGEX REPLACE "^stepit_plugin_" "" plugin_id "${plugin_name}")
-  foreach (dependency ${ARG_DEPENDS})
-    if (NOT TARGET stepit_plugin_${dependency})
-      message(
-          FATAL_ERROR
-          "Plugin '${plugin_id}' depends on plugin '${dependency}', "
-          "but target 'stepit_plugin_${dependency}' is unavailable. "
-          "Check the plugin manifest dependency graph."
-      )
-    endif ()
-    add_dependencies(${plugin_name} stepit_plugin_${dependency})
-    target_link_libraries(${plugin_name} PUBLIC stepit_plugin_${dependency})
-  endforeach ()
-
-  if (ARG_ENTRY)
-    set(plugin_entry "${plugin_name}_entry")
-    stepit_add_library(${plugin_entry} MODULE ${ARG_ENTRY})
-    target_link_libraries(${plugin_entry} PUBLIC ${plugin_name})
-  endif ()
+  add_library(${plugin_name} SHARED)
 endfunction()
 
-function(stepit_add_executable executable_name)
-  add_executable(${executable_name} ${ARGN})
-  target_link_libraries(${executable_name} PRIVATE stepit_core)
-  set_property(GLOBAL APPEND PROPERTY STEPIT_EXECUTABLES ${executable_name})
+function(stepit_add_entry entry_name)
+  if (NOT entry_name MATCHES "^stepit_plugin_.*_entry$")
+    message(FATAL_ERROR "Entry name must start with 'stepit_plugin_' and end with '_entry'")
+  endif ()
+  if (TARGET ${entry_name})
+    message(FATAL_ERROR "Entry target '${entry_name}' already exists.")
+  endif ()
+  add_library(${entry_name} MODULE)
 endfunction()
 
 function(get_library_directory library_name output_var)

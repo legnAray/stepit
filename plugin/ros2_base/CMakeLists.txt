@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.23)
 project(stepit_plugin_ros2_base)
 set(CMAKE_CXX_STANDARD 17)
 
@@ -11,21 +11,44 @@ find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(stepit_ros2_msgs QUIET)
 
-stepit_add_plugin(${PROJECT_NAME}
-    SOURCES
+stepit_add_plugin(${PROJECT_NAME})
+target_sources(${PROJECT_NAME}
+    PRIVATE
       src/control.cpp
       src/joystick.cpp
       src/node.cpp
       src/publisher.cpp
       src/spin.cpp
-    ENTRY
+    PUBLIC
+      FILE_SET HEADERS
+      BASE_DIRS include
+      FILES
+        include/stepit/ros2/control.h
+        include/stepit/ros2/joystick.h
+        include/stepit/ros2/node.h
+        include/stepit/ros2/publisher.h
+)
+target_link_libraries(${PROJECT_NAME} PUBLIC
+    stepit_core
+    stepit_plugin_joystick_base
+)
+target_compile_options(${PROJECT_NAME} PRIVATE -Wall -Wextra -Wpedantic -Wno-unused-parameter)
+install(TARGETS ${PROJECT_NAME}
+    EXPORT stepitTargets
+    LIBRARY DESTINATION ${STEPIT_LIB_DESTINATION}
+    ARCHIVE DESTINATION ${STEPIT_LIB_DESTINATION}
+    FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+set(entry_target ${PROJECT_NAME}_entry)
+stepit_add_entry(${entry_target})
+target_sources(${entry_target}
+    PRIVATE
       src/entry.cpp
-    INCLUDES
-      include
-    DEPENDS
-      joystick_base
-    FLAGS
-      PRIVATE -Wall -Wextra -Wpedantic -Wno-unused-parameter
+)
+target_link_libraries(${entry_target} PRIVATE ${PROJECT_NAME})
+install(TARGETS ${entry_target}
+    EXPORT stepitTargets
+    LIBRARY DESTINATION ${STEPIT_LIB_DESTINATION}
 )
 ament_target_dependencies(${PROJECT_NAME} PUBLIC
     diagnostic_msgs geometry_msgs rclcpp sensor_msgs std_msgs

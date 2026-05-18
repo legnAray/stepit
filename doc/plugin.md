@@ -34,16 +34,34 @@ if (NOT Python3_FOUND)
 endif ()
 ```
 
-Then use the `stepit_add_plugin` macro in `CMakeLists.txt` to define the target.
+Then define a normal CMake library target and register it with StepIt.
 
 ```cmake
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.23)
 project(stepit_plugin_example)
 
-stepit_add_plugin(stepit_plugin_example
-    SOURCES src/my_plugin.cpp
-    INCLUDES include
-    LINK_LIBS stepit_core
+stepit_add_plugin(stepit_plugin_example)
+
+target_sources(stepit_plugin_example
+    PRIVATE
+      src/my_plugin.cpp
+    PUBLIC
+      FILE_SET HEADERS
+      BASE_DIRS include
+      FILES
+        include/stepit/my_plugin/my_plugin.h
+)
+
+target_link_libraries(stepit_plugin_example PUBLIC
+    stepit_core
+    stepit_plugin_field_base
+)
+
+install(TARGETS stepit_plugin_example
+    EXPORT stepitTargets
+    LIBRARY DESTINATION ${STEPIT_LIB_DESTINATION}
+    ARCHIVE DESTINATION ${STEPIT_LIB_DESTINATION}
+    FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 ```
 

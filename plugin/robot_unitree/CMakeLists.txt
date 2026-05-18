@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.23)
 
 set(VALID_ROBOTS "aliengo;go1;b1")
 if (NOT STEPIT_UNITREE_ROBOT IN_LIST VALID_ROBOTS)
@@ -20,11 +20,28 @@ endif ()
 init_submodule(extern/robot_sdk/unitree_${STEPIT_UNITREE_ROBOT}_sdk WORKING_DIRECTORY ${STEPIT_HOME_DIRECTORY})
 set(UNITREE_LEGGED_SDK_HOME ${STEPIT_HOME_DIRECTORY}/extern/robot_sdk/unitree_${STEPIT_UNITREE_ROBOT}_sdk)
 
-stepit_add_plugin(${PROJECT_NAME}
-    SOURCES ${CMAKE_CURRENT_LIST_DIR}/src/unitree.cpp
-    INCLUDES ${CMAKE_CURRENT_LIST_DIR}/include ${UNITREE_LEGGED_SDK_HOME}/include
-    LINK_DIRS ${UNITREE_LEGGED_SDK_HOME}/lib/cpp/${ARCH}
-    LINK_LIBS unitree_legged_sdk lcm
+stepit_add_plugin(${PROJECT_NAME})
+target_sources(${PROJECT_NAME}
+    PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR}/src/unitree.cpp
+    PUBLIC
+      FILE_SET HEADERS
+      BASE_DIRS ${CMAKE_CURRENT_LIST_DIR}/include
+      FILES ${CMAKE_CURRENT_LIST_DIR}/include/stepit/robot/unitree.h
+)
+target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${UNITREE_LEGGED_SDK_HOME}/include>)
+target_link_directories(${PROJECT_NAME} BEFORE PUBLIC $<BUILD_INTERFACE:${UNITREE_LEGGED_SDK_HOME}/lib/cpp/${ARCH}>)
+target_link_libraries(${PROJECT_NAME} PUBLIC
+    stepit_core
+    unitree_legged_sdk
+    lcm
+)
+set_target_properties(${PROJECT_NAME} PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${UNITREE_LEGGED_SDK_HOME}/lib/cpp/${ARCH}")
+install(TARGETS ${PROJECT_NAME}
+    EXPORT stepitTargets
+    LIBRARY DESTINATION ${STEPIT_LIB_DESTINATION}
+    ARCHIVE DESTINATION ${STEPIT_LIB_DESTINATION}
+    FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 string(TOUPPER "UNITREE_${STEPIT_UNITREE_ROBOT}" ROBOT_MACRO)

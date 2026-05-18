@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.23)
 project(stepit)
 
 include(GNUInstallDirs)
@@ -50,7 +50,7 @@ find_package(yaml-cpp REQUIRED)
 init_submodule(extern/llu WORKING_DIRECTORY ${STEPIT_HOME_DIRECTORY})
 add_subdirectory(extern/llu)
 
-stepit_add_library(stepit_core SHARED
+add_library(stepit_core SHARED
     src/stepit/agent.cpp
     src/stepit/communication.cpp
     src/stepit/control_input.cpp
@@ -63,20 +63,34 @@ stepit_add_library(stepit_core SHARED
 )
 target_compile_definitions(stepit_core PRIVATE STEPIT_CONFIG_DIR="${STEPIT_HOME_DIRECTORY}/config")
 target_compile_definitions(stepit_core PUBLIC FMT_HEADER_ONLY=1)
-target_compile_options(stepit_core PUBLIC -fPIC PRIVATE -Wall -Wextra -Wpedantic -Wno-unused-parameter)
-target_include_directories(stepit_core PUBLIC
-    $<BUILD_INTERFACE:${STEPIT_HOME_DIRECTORY}/include>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+target_compile_options(stepit_core PRIVATE -Wall -Wextra -Wpedantic -Wno-unused-parameter)
+target_sources(stepit_core
+    PUBLIC
+      FILE_SET HEADERS
+      BASE_DIRS include
+      FILES
+        include/stepit/agent.h
+        include/stepit/communication.h
+        include/stepit/control_input.h
+        include/stepit/logging.h
+        include/stepit/plugin.h
+        include/stepit/policy.h
+        include/stepit/publisher.h
+        include/stepit/registry.h
+        include/stepit/robot.h
+        include/stepit/spin.h
+        include/stepit/utils.h
 )
 target_link_libraries(stepit_core PUBLIC
-    atomic
     Boost::filesystem
-    Boost::program_options
     Eigen3::Eigen
-    dl
-    llu::llu
     Threads::Threads
+    atomic
+    llu::llu
     yaml-cpp
+)
+target_link_libraries(stepit_core PRIVATE
+    dl
 )
 
 # Check for gettid() function
@@ -88,9 +102,29 @@ if (NOT HAVE_GETTID)
   target_compile_definitions(stepit_core PUBLIC STEPIT_FIX_GETTID)
 endif ()
 
-stepit_add_executable(stepit src/stepit_app/main.cpp)
-stepit_add_executable(rotation_transform src/stepit_app/rotation_transform.cpp)
-stepit_add_plugin(stepit_plugin_builtin SOURCES src/stepit/builtin.cpp)
+add_executable(stepit src/stepit_app/main.cpp)
+target_link_libraries(stepit PRIVATE stepit_core Boost::program_options)
+install(TARGETS stepit
+    RUNTIME DESTINATION ${STEPIT_BIN_DESTINATION}
+)
+
+add_executable(rotation_transform src/stepit_app/rotation_transform.cpp)
+target_link_libraries(rotation_transform PRIVATE stepit_core Boost::program_options)
+install(TARGETS rotation_transform
+    RUNTIME DESTINATION ${STEPIT_BIN_DESTINATION}
+)
+
+stepit_add_plugin(stepit_plugin_builtin)
+target_sources(stepit_plugin_builtin
+    PRIVATE
+      src/stepit/builtin.cpp
+)
+target_link_libraries(stepit_plugin_builtin PUBLIC stepit_core)
+install(TARGETS stepit_plugin_builtin
+    EXPORT stepitTargets
+    LIBRARY DESTINATION ${STEPIT_LIB_DESTINATION}
+    ARCHIVE DESTINATION ${STEPIT_LIB_DESTINATION}
+)
 
 # Dynamically discover plugins from manifest files
 set(STEPIT_DISCOVERED_PLUGINS "")
@@ -197,20 +231,11 @@ endforeach ()
 
 stepit_print_plugin_report(${STEPIT_RESOLVED_PLUGINS})
 
-get_property(STEPIT_LIBRARIES GLOBAL PROPERTY STEPIT_LIBRARIES)
-get_property(STEPIT_EXECUTABLES GLOBAL PROPERTY STEPIT_EXECUTABLES)
-install(TARGETS ${STEPIT_LIBRARIES}
+install(TARGETS stepit_core
     EXPORT stepitTargets
     LIBRARY DESTINATION ${STEPIT_LIB_DESTINATION}
     ARCHIVE DESTINATION ${STEPIT_LIB_DESTINATION}
-    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
-install(TARGETS ${STEPIT_EXECUTABLES}
-    RUNTIME DESTINATION ${STEPIT_BIN_DESTINATION}
-)
-install(
-    DIRECTORY ${STEPIT_HOME_DIRECTORY}/include/stepit
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 get_property(STEPIT_BUILT_PLUGINS GLOBAL PROPERTY STEPIT_BUILT_PLUGINS)
@@ -223,14 +248,6 @@ file(WRITE "${stepit_dependencies_file}" "set(STEPIT_BUILT_PLUGINS \"${STEPIT_BU
 foreach (plugin ${STEPIT_BUILT_PLUGINS})
   stepit_get_plugin_property(${plugin} DEPENDS plugin_dependencies)
   file(APPEND "${stepit_dependencies_file}" "set(STEPIT_PLUGIN_DEPENDENCIES_${plugin} \"${plugin_dependencies}\")\n")
-
-  stepit_get_plugin_property(${plugin} DIR plugin_dir)
-  if (IS_DIRECTORY "${plugin_dir}/include")
-    install(
-        DIRECTORY "${plugin_dir}/include/"
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    )
-  endif ()
 endforeach ()
 
 install(EXPORT stepitTargets

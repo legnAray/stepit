@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.23)
 project(stepit_plugin_policy_neuro_ros)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
@@ -137,20 +137,34 @@ endif ()
 # )
 
 ## Declare a C++ library
-stepit_add_plugin(${PROJECT_NAME}
-    SOURCES
+stepit_add_plugin(${PROJECT_NAME})
+target_sources(${PROJECT_NAME}
+    PRIVATE
       src/cmd_vel_subscriber.cpp
       src/cmd_posture_subscriber.cpp
       src/field_subscriber.cpp
       src/heightmap_subscriber.cpp
-    INCLUDES
-      include
-      ${catkin_INCLUDE_DIRS}
-    LINK_LIBS
-      ${catkin_LIBRARIES}
-    DEPENDS
-      policy_neuro
-      ros_base
+    PUBLIC
+      FILE_SET HEADERS
+      BASE_DIRS include
+      FILES
+        include/stepit/policy_neuro_ros/cmd_posture_subscriber.h
+        include/stepit/policy_neuro_ros/cmd_vel_subscriber.h
+        include/stepit/policy_neuro_ros/field_subscriber.h
+        include/stepit/policy_neuro_ros/heightmap_subscriber.h
+)
+target_include_directories(${PROJECT_NAME} PUBLIC ${catkin_INCLUDE_DIRS})
+target_link_libraries(${PROJECT_NAME} PUBLIC
+    stepit_core
+    stepit_plugin_policy_neuro
+    stepit_plugin_ros_base
+    ${catkin_LIBRARIES}
+)
+install(TARGETS ${PROJECT_NAME}
+    EXPORT stepitTargets
+    LIBRARY DESTINATION ${STEPIT_LIB_DESTINATION}
+    ARCHIVE DESTINATION ${STEPIT_LIB_DESTINATION}
+    FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 ## Add cmake target dependencies of the library
