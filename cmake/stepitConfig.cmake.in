@@ -1,17 +1,17 @@
+@PACKAGE_INIT@
+
 include(CMakeFindDependencyMacro)
 
 find_dependency(Boost REQUIRED COMPONENTS filesystem program_options)
 find_dependency(Eigen3 REQUIRED)
 find_dependency(Threads REQUIRED)
 find_dependency(yaml-cpp REQUIRED)
-set(llu_DIR "@CMAKE_BINARY_DIR@/extern/llu")
 find_dependency(llu REQUIRED)
 
 set(STEPIT_PACKAGE_MODE TRUE)
-set(STEPIT_HOME_DIRECTORY "@STEPIT_HOME_DIRECTORY@")
 
-include("${CMAKE_CURRENT_LIST_DIR}/stepit_utils.cmake")
 include("${CMAKE_CURRENT_LIST_DIR}/stepitDependencies.cmake")
+include("${CMAKE_CURRENT_LIST_DIR}/stepitTargets.cmake")
 
 function(_stepit_collect_component_closure output_var)
   set(queue ${ARGN})
@@ -33,27 +33,8 @@ function(_stepit_collect_component_closure output_var)
   set(${output_var} ${closure} PARENT_SCOPE)
 endfunction()
 
-macro(_stepit_include_component component)
-  if (NOT "${component}" STREQUAL "" AND
-      NOT "${component}" STREQUAL "core" AND
-      NOT "${component}" IN_LIST stepit_included_components)
-    if (DEFINED STEPIT_PLUGIN_DEPENDENCIES_${component} AND
-        NOT STEPIT_PLUGIN_DEPENDENCIES_${component} STREQUAL "")
-      foreach (_stepit_dependency ${STEPIT_PLUGIN_DEPENDENCIES_${component}})
-        _stepit_include_component(${_stepit_dependency})
-      endforeach ()
-      unset(_stepit_dependency)
-    endif ()
-    if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/stepit_plugin_${component}Targets.cmake")
-      include("${CMAKE_CURRENT_LIST_DIR}/stepit_plugin_${component}Targets.cmake")
-      set(stepit_${component}_FOUND TRUE)
-    endif ()
-    list(APPEND stepit_included_components ${component})
-  endif ()
-endmacro()
-
-if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/stepit_coreTargets.cmake")
-  include("${CMAKE_CURRENT_LIST_DIR}/stepit_coreTargets.cmake")
+set(stepit_core_FOUND FALSE)
+if (TARGET stepit::stepit_core)
   set(stepit_core_FOUND TRUE)
 endif ()
 
@@ -62,9 +43,19 @@ if (NOT DEFINED stepit_FIND_COMPONENTS OR stepit_FIND_COMPONENTS STREQUAL "")
 endif ()
 
 _stepit_collect_component_closure(stepit_components ${stepit_FIND_COMPONENTS})
-set(stepit_included_components "")
 foreach (component IN LISTS stepit_components)
-  _stepit_include_component(${component})
+  if (component STREQUAL "core")
+    set(stepit_core_FOUND ${stepit_core_FOUND})
+  elseif (TARGET stepit::stepit_plugin_${component})
+    set(stepit_${component}_FOUND TRUE)
+  else ()
+    set(stepit_${component}_FOUND FALSE)
+    if (NOT component IN_LIST STEPIT_BUILT_PLUGINS)
+      set(stepit_NOT_FOUND_MESSAGE "StepIt plugin component '${component}' was not built or installed.")
+    else ()
+      set(stepit_NOT_FOUND_MESSAGE "StepIt plugin component '${component}' target is missing from the install tree.")
+    endif ()
+  endif ()
 endforeach ()
 
 check_required_components(stepit)

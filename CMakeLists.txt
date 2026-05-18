@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
 project(stepit)
 
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
 if (NOT DEFINED CMAKE_LIBRARY_OUTPUT_DIRECTORY AND
     NOT DEFINED CMAKE_RUNTIME_OUTPUT_DIRECTORY AND
     NOT DEFINED CMAKE_ARCHIVE_OUTPUT_DIRECTORY)
@@ -25,10 +28,10 @@ else ()
   )
 endif ()
 if (NOT DEFINED STEPIT_LIB_DESTINATION)
-  set(STEPIT_LIB_DESTINATION "lib")
+  set(STEPIT_LIB_DESTINATION "${CMAKE_INSTALL_LIBDIR}")
 endif ()
 if (NOT DEFINED STEPIT_BIN_DESTINATION)
-  set(STEPIT_BIN_DESTINATION "bin")
+  set(STEPIT_BIN_DESTINATION "${CMAKE_INSTALL_BINDIR}")
 endif ()
 file(RELATIVE_PATH INSTALL_RPATH
     ${CMAKE_INSTALL_PREFIX}/${STEPIT_BIN_DESTINATION}
@@ -61,7 +64,10 @@ stepit_add_library(stepit_core SHARED
 target_compile_definitions(stepit_core PRIVATE STEPIT_CONFIG_DIR="${STEPIT_HOME_DIRECTORY}/config")
 target_compile_definitions(stepit_core PUBLIC FMT_HEADER_ONLY=1)
 target_compile_options(stepit_core PUBLIC -fPIC PRIVATE -Wall -Wextra -Wpedantic -Wno-unused-parameter)
-target_include_directories(stepit_core PUBLIC ${STEPIT_HOME_DIRECTORY}/include)
+target_include_directories(stepit_core PUBLIC
+    $<BUILD_INTERFACE:${STEPIT_HOME_DIRECTORY}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
 target_link_libraries(stepit_core PUBLIC
     atomic
     Boost::filesystem
@@ -193,8 +199,58 @@ stepit_print_plugin_report(${STEPIT_RESOLVED_PLUGINS})
 
 get_property(STEPIT_LIBRARIES GLOBAL PROPERTY STEPIT_LIBRARIES)
 get_property(STEPIT_EXECUTABLES GLOBAL PROPERTY STEPIT_EXECUTABLES)
-install(TARGETS ${STEPIT_LIBRARIES} ${STEPIT_EXECUTABLES}
-    RUNTIME DESTINATION ${STEPIT_BIN_DESTINATION}
+install(TARGETS ${STEPIT_LIBRARIES}
+    EXPORT stepitTargets
     LIBRARY DESTINATION ${STEPIT_LIB_DESTINATION}
     ARCHIVE DESTINATION ${STEPIT_LIB_DESTINATION}
+    INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+install(TARGETS ${STEPIT_EXECUTABLES}
+    RUNTIME DESTINATION ${STEPIT_BIN_DESTINATION}
+)
+install(
+    DIRECTORY ${STEPIT_HOME_DIRECTORY}/include/stepit
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+get_property(STEPIT_BUILT_PLUGINS GLOBAL PROPERTY STEPIT_BUILT_PLUGINS)
+if (NOT STEPIT_BUILT_PLUGINS)
+  set(STEPIT_BUILT_PLUGINS "")
+endif ()
+
+set(stepit_dependencies_file "${CMAKE_CURRENT_BINARY_DIR}/stepitDependencies.cmake")
+file(WRITE "${stepit_dependencies_file}" "set(STEPIT_BUILT_PLUGINS \"${STEPIT_BUILT_PLUGINS}\")\n")
+foreach (plugin ${STEPIT_BUILT_PLUGINS})
+  stepit_get_plugin_property(${plugin} DEPENDS plugin_dependencies)
+  file(APPEND "${stepit_dependencies_file}" "set(STEPIT_PLUGIN_DEPENDENCIES_${plugin} \"${plugin_dependencies}\")\n")
+
+  stepit_get_plugin_property(${plugin} DIR plugin_dir)
+  if (IS_DIRECTORY "${plugin_dir}/include")
+    install(
+        DIRECTORY "${plugin_dir}/include/"
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+  endif ()
+endforeach ()
+
+install(EXPORT stepitTargets
+    FILE stepitTargets.cmake
+    NAMESPACE stepit::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/stepit
+)
+configure_package_config_file(
+    "${STEPIT_HOME_DIRECTORY}/cmake/stepitConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/stepitConfig.cmake"
+    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/stepit"
+)
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/stepitConfigVersion.cmake"
+    VERSION 0.0.0
+    COMPATIBILITY SameMajorVersion
+)
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/stepitConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/stepitConfigVersion.cmake"
+    "${stepit_dependencies_file}"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/stepit"
 )

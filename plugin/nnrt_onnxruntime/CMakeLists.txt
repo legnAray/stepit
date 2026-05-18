@@ -65,3 +65,5 @@ stepit_add_plugin(${PROJECT_NAME}
 
 stepit_add_executable(onnx_metadata2yaml app/onnx_metadata2yaml.cpp)
 target_link_libraries(onnx_metadata2yaml PRIVATE ${PROJECT_NAME})
+target_link_directories(onnx_metadata2yaml PRIVATE ${ONNXRUNTIME_DIR}/lib)
+target_link_libraries(onnx_metadata2yaml PRIVATE onnxruntime)
