@@ -1,9 +1,6 @@
 [submodule "extern/llu"]
 	path = extern/llu
 	url = https://github.com/chengruiz/llu.git
-[submodule "extern/joystick_sdk/libgamepad"]
-	path = extern/joystick_sdk/libgamepad
-	url = https://github.com/univrsal/libgamepad.git
 [submodule "extern/joystick_sdk/udp-gamepad"]
 	path = extern/joystick_sdk/udp-gamepad
 	url = https://github.com/chengruiz/udp-gamepad.git

@@ -1,53 +1,97 @@
-#include <cstdio>
+#include <algorithm>
+#include <cerrno>
+#include <chrono>
+#include <cstdlib>
+#include <fcntl.h>
+#include <linux/joystick.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 
 #include <stepit/utils.h>
 #include <stepit/joystick/usb.h>
 
 namespace stepit {
 namespace joystick {
-static void libGamepadLogger(int level, const char *format, va_list args, void *) {
-  char out[4096];
-  std::vsnprintf(out, sizeof(out), format, args);
-  switch (level) {
-    case gamepad::LOG_INFO:
-      STEPIT_LOG("Gamepad: {}", out);
-      break;
-    case gamepad::LOG_WARNING:
-      if (std::string(out).find("is still in use! (Ref count 2)") != std::string::npos) return;
-      STEPIT_WARN("Gamepad: {}", out);
-      break;
-    case gamepad::LOG_ERROR:
-      STEPIT_CRIT("Gamepad: {}", out);
-      break;
-    default:
-      break;
+namespace {
+constexpr auto kPollInterval = std::chrono::milliseconds(1);
+constexpr auto kScanInterval = std::chrono::seconds(1);
+constexpr const char *kInputDirectory = "/dev/input";
+
+bool parseJoystickId(const std::string &name, long &id) {
+  if (name.size() <= 2 or name[0] != 'j' or name[1] != 's') return false;
+
+  char *end = nullptr;
+  const char *begin = name.c_str() + 2;
+  long value = std::strtol(begin, &end, 10);
+  if (begin == end or *end != '\0' or value < 0) return false;
+
+  id = value;
+  return true;
+}
+
+float normalizeAxisValue(int16_t value) {
+  return std::max(-1.0f, std::min(1.0f, static_cast<float>(value) / 32767.0f));
+}
+
+void setButtonState(Button &button, bool pressed, bool emit_transient) {
+  if (emit_transient) {
+    button.update(pressed);
+  } else {
+    button.pressed = pressed;
   }
 }
 
-void initializeLibGamepad() {
-  static bool initialized = false;
-  if (initialized) return;
-  gamepad::set_logger(libGamepadLogger, nullptr);
-  initialized = true;
-}
+}  // namespace
 
 UsbJoystick::UsbJoystick() {
-  initializeLibGamepad();
+  if (not getenv("STEPIT_JS_ID", id_)) getenv("STEPIT_JOYSTICK_ID", id_);
 
-  getenv("STEPIT_JOYSTICK_ID", id_);
-  hook_ = gamepad::hook::make();
-  hook_->set_plug_and_play(true, gamepad::ms(1000));
-  hook_->set_sleep_time(gamepad::ms(1));
-
-  hook_->set_connect_event_handler([this](auto dev) { connectHandler(std::move(dev)); });
-  hook_->set_axis_event_handler([this](auto dev) { axisHandler(std::move(dev)); });
-  hook_->set_button_event_handler([this](auto dev) { buttonHandler(std::move(dev)); });
-  hook_->set_disconnect_event_handler([this](auto dev) { disconnectHandler(std::move(dev)); });
-  STEPIT_ASSERT(hook_->start(), "Failed to start gamepad hook.");
+  running_ = true;
+  worker_  = std::thread(&UsbJoystick::run, this);
 }
 
 UsbJoystick::~UsbJoystick() {
-  if (hook_) hook_->stop();
+  running_ = false;
+  if (worker_.joinable()) worker_.join();
+  disconnect(false);
+}
+
+void UsbJoystick::run() {
+  while (running_) {
+    if (not connected_) {
+      scanAndConnect();
+      auto slept = std::chrono::milliseconds(0);
+      while (running_ and not connected_ and slept < kScanInterval) {
+        std::this_thread::sleep_for(kPollInterval);
+        slept += kPollInterval;
+      }
+      continue;
+    }
+
+    js_event event{};
+    bool disconnected = false;
+    while (running_) {
+      ssize_t result = ::read(fd_, &event, sizeof(event));
+      if (result == static_cast<ssize_t>(sizeof(event))) {
+        processEvent(event);
+        continue;
+      }
+
+      if (result < 0 and errno == EINTR) continue;
+      if (result < 0 and (errno == EAGAIN or errno == EWOULDBLOCK)) break;
+
+      disconnected = true;
+      break;
+    }
+
+    if (not disconnected and connected_) {
+      boost::system::error_code ec;
+      if (not device_path_.empty() and not fs::exists(device_path_, ec) and not ec) disconnected = true;
+    }
+
+    if (disconnected) disconnect(true);
+    std::this_thread::sleep_for(kPollInterval);
+  }
 }
 
 void UsbJoystick::getState(State &state) {
@@ -62,79 +106,141 @@ void UsbJoystick::getState(State &state) {
   for (auto &button : slots_.buttons) button.resetTransientStates();
 }
 
-void UsbJoystick::connectHandler(std::shared_ptr<gamepad::device> dev) {
-  if (connected_ or (id_ >= 0 and dev->get_index() != id_)) return;
+void UsbJoystick::scanAndConnect() {
+  for (const auto &device : listDevices()) {
+    if (not running_ or connected_) return;
+    if (id_ >= 0 and device.id != id_) continue;
+    if (tryConnect(device)) return;
+  }
+}
 
-  std::string name = toLowercase(dev->get_name());
-  if (name.find("x-box") != std::string::npos or name.find("xbox") != std::string::npos) {
-    keymap_ = getXboxKeymap();
+bool UsbJoystick::tryConnect(const DeviceInfo &device) {
+  int fd = ::open(device.path.c_str(), O_RDONLY | O_NONBLOCK);
+  if (fd < 0) return false;
+
+  char name_buffer[256] = {};
+  std::string name;
+  if (::ioctl(fd, JSIOCGNAME(sizeof(name_buffer)), name_buffer) >= 0 and name_buffer[0] != '\0') {
+    name = name_buffer;
   } else {
-    bool found = false;
-    // Search keymaps from higher-priority config directories to lower-priority ones.
-    for (const auto &config_dir : getConfigSearchPaths()) {
-      fs::path joystick_dir = fs::path(config_dir) / "joystick";
-      if (not fs::exists(joystick_dir) or not fs::is_directory(joystick_dir)) continue;
+    name = fs::path(device.path).filename().string();
+  }
 
-      for (const auto &entry : fs::directory_iterator(joystick_dir)) {
-        if (entry.path().extension() != ".yml") continue;
-        std::string stem = toLowercase(entry.path().stem().string());
-        if (name.find(stem) != std::string::npos) {
-          keymap_ = Keymap{yml::loadFile(entry.path().string())};
-          found   = true;
-          break;
-        }
+  Keymap keymap;
+  if (not loadKeymapForDevice(name, keymap)) {
+    if (unsupported_devices_.insert(device.path).second) STEPIT_WARN("An unsupported joystick '{}' connected. Ignored.", name);
+    ::close(fd);
+    return false;
+  }
+
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    slots_ = {};
+    keymap_ = keymap;
+    slots_.axes[keymap_.lt] = -1.0f;
+    slots_.axes[keymap_.rt] = -1.0f;
+  }
+
+  fd_           = fd;
+  rid_          = device.id;
+  device_path_  = device.path;
+  device_name_  = name;
+  connected_    = true;
+
+  STEPIT_INFO("Joystick '{}' connected.", device_name_);
+  return true;
+}
+
+std::vector<UsbJoystick::DeviceInfo> UsbJoystick::listDevices() const {
+  std::vector<DeviceInfo> devices;
+  boost::system::error_code ec;
+  if (not fs::exists(kInputDirectory, ec) or ec or not fs::is_directory(kInputDirectory, ec) or ec) return devices;
+
+  for (fs::directory_iterator it(kInputDirectory, ec), end; not ec and it != end; it.increment(ec)) {
+    if (ec) break;
+
+    long js_id = -1;
+    const std::string filename = it->path().filename().string();
+    if (not parseJoystickId(filename, js_id)) continue;
+    devices.push_back({js_id, it->path().string()});
+  }
+
+  std::sort(devices.begin(), devices.end(), [](const DeviceInfo &lhs, const DeviceInfo &rhs) { return lhs.id < rhs.id; });
+  return devices;
+}
+
+bool UsbJoystick::loadKeymapForDevice(const std::string &device_name, Keymap &keymap) const {
+  std::string name = toLowercase(device_name);
+  if (name.find("x-box") != std::string::npos or name.find("xbox") != std::string::npos) {
+    keymap = getXboxKeymap();
+    return true;
+  }
+
+  // Search keymaps from higher-priority config directories to lower-priority ones.
+  for (const auto &config_dir : getConfigSearchPaths()) {
+    fs::path joystick_dir = fs::path(config_dir) / "joystick";
+    if (not fs::exists(joystick_dir) or not fs::is_directory(joystick_dir)) continue;
+
+    for (const auto &entry : fs::directory_iterator(joystick_dir)) {
+      if (entry.path().extension() != ".yml") continue;
+      std::string stem = toLowercase(entry.path().stem().string());
+      if (name.find(stem) != std::string::npos) {
+        keymap = Keymap{yml::loadFile(entry.path().string())};
+        return true;
       }
-      if (found) break;
-    }
-    if (not found) {
-      STEPIT_WARN("An unsupported joystick '{}' connected. Ignored.", dev->get_name());
-      return;
     }
   }
 
-  STEPIT_INFO("Joystick '{}' connected.", dev->get_name());
-  connected_ = true;
-  rid_       = dev->get_index();
-
-  slots_.axes[keymap_.lt] = -1.0;
-  slots_.axes[keymap_.rt] = -1.0;
-  dev->set_axis_deadzone(gamepad::axis::LEFT_STICK_X, 0);
-  dev->set_axis_deadzone(gamepad::axis::LEFT_STICK_Y, 0);
-  dev->set_axis_deadzone(gamepad::axis::LEFT_TRIGGER, 0);
-  dev->set_axis_deadzone(gamepad::axis::RIGHT_STICK_X, 0);
-  dev->set_axis_deadzone(gamepad::axis::RIGHT_STICK_Y, 0);
-  dev->set_axis_deadzone(gamepad::axis::RIGHT_TRIGGER, 0);
+  return false;
 }
 
-void UsbJoystick::disconnectHandler(std::shared_ptr<gamepad::device> dev) {
-  if (rid_ != dev->get_index()) return;
-  connected_ = false;
-  rid_       = -1;
-  STEPIT_WARN("Joystick '{}' disconnected.", dev->get_name());
+void UsbJoystick::disconnect(bool log_disconnect) {
+  bool was_connected = connected_.exchange(false);
+  if (fd_ >= 0) {
+    ::close(fd_);
+    fd_ = -1;
+  }
+
+  std::string name = device_name_;
+  rid_             = -1;
+  device_path_.clear();
+  device_name_.clear();
+
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    slots_ = {};
+  }
+
+  if (was_connected and log_disconnect) STEPIT_WARN("Joystick '{}' disconnected.", name);
 }
 
-void UsbJoystick::axisHandler(std::shared_ptr<gamepad::device> dev) {
-  if (rid_ != dev->get_index()) return;
-  uint16_t aid = dev->last_axis_event()->native_id;
+void UsbJoystick::processEvent(const js_event &event) {
+  bool is_init = event.type & JS_EVENT_INIT;
+  uint8_t type = event.type & ~JS_EVENT_INIT;
+
+  if (type == JS_EVENT_AXIS) {
+    updateAxis(event.number, normalizeAxisValue(event.value), not is_init);
+  } else if (type == JS_EVENT_BUTTON) {
+    updateButton(event.number, event.value != 0, not is_init);
+  }
+}
+
+void UsbJoystick::updateAxis(std::size_t aid, float value, bool emit_transient) {
   if (aid >= Slots::NAxes) return;
 
-  float value = dev->last_axis_event()->virtual_value;
   std::lock_guard<std::mutex> lock(mutex_);
-  // map from [0, 1] to [-1, 1]
-  slots_.axes[aid] = value * 2 - 1;
-  // Convert the analogue axis to two virtual buttons, one for each direction
-  slots_.buttons[Slots::NButtons + 2 * aid].update(value < 0.01);
-  slots_.buttons[Slots::NButtons + 2 * aid + 1].update(value > 0.99);
+  slots_.axes[aid] = value;
+
+  float value01 = (value + 1.0f) * 0.5f;
+  setButtonState(slots_.buttons[Slots::NButtons + 2 * aid], value01 < 0.01f, emit_transient);
+  setButtonState(slots_.buttons[Slots::NButtons + 2 * aid + 1], value01 > 0.99f, emit_transient);
 }
 
-void UsbJoystick::buttonHandler(std::shared_ptr<gamepad::device> dev) {
-  if (rid_ != dev->get_index()) return;
-  uint16_t bid = dev->last_button_event()->native_id;
+void UsbJoystick::updateButton(std::size_t bid, bool pressed, bool emit_transient) {
   if (bid >= Slots::NButtons) return;
 
-  bool pressed = dev->last_button_event()->virtual_value > 0.99;
   std::lock_guard<std::mutex> lock(mutex_);
-  slots_.buttons[bid].update(pressed);
+  setButtonState(slots_.buttons[bid], pressed, emit_transient);
 }
 
 STEPIT_REGISTER_JOYSTICK(usb, kDefPriority, Joystick::make<UsbJoystick>);
