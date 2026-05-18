@@ -205,6 +205,7 @@ Registry<T, Args...>::Registration::Registration(Registration &&other) noexcept
 template <typename T, typename... Args>
 auto Registry<T, Args...>::Registration::operator=(Registration &&other) noexcept -> Registration & {
   if (this == &other) return *this;
+  if (registry_ != nullptr and not name_.empty()) registry_->eraseEntry(name_, priority_);
   name_     = std::move(other.name_);
   priority_ = other.priority_;
   registry_ = other.registry_;

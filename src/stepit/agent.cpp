@@ -23,6 +23,7 @@ Agent::Agent(const std::string &robot_factory, const std::vector<std::string> &c
 
 void Agent::addPolicy(const std::string &policy_factory, const std::string &home_dir) {
   auto policy = Policy::make(policy_factory, spec(), home_dir);
+  STEPIT_ASSERT(policy->getControlFreq() > 0, "Control frequency of policy '{}' must be positive.", policy->getName());
   if (communication_.getFreq() % policy->getControlFreq() != 0) {
     STEPIT_WARN("Policy control frequency ({}) is not a divisor of the communication frequency ({}).",
                 policy->getControlFreq(), communication_.getFreq());
@@ -86,6 +87,8 @@ void Agent::mainLoop() {
       robot_connected = communication_.isConnected();
     } else if (not communication_.isConnected()) {
       STEPIT_CRIT("Agent quit due to interrupted communication.");
+      agent_started_ = false;
+      trySwitchState(State::kResting);
       return;
     } else {
       mainEvent();
@@ -267,7 +270,8 @@ void Agent::stepStateMachine() {
 }
 
 void Agent::trySwitchState(State next_state) {
-  if (next_state > State::kResting and not(next_state == State::kPolicy and isActivePolicyTrusted())) {
+  if (spec().safety.enabled and next_state > State::kResting and
+      not(next_state == State::kPolicy and isActivePolicyTrusted())) {
     LowState low_state{communication_.getLowState()};
     if (std::abs(low_state.imu.rpy[0]) > spec().safety.roll or std::abs(low_state.imu.rpy[1]) > spec().safety.pitch) {
       next_state = State::kFrozen;
