@@ -23,6 +23,7 @@ CmdRollSource::CmdRollSource(const NeuroPolicySpec &policy_spec, const ModuleSpe
 
 bool CmdRollSource::reset() {
   cmd_roll_ = 0.0F;
+  joystick_rules_.clear();
   joystick_rules_.emplace_back([this](const joystick::State &js) -> std::string {
     if (not joystick_enabled_) return "";
     float cmd_roll = static_cast<float>(js.Right().pressed) - static_cast<float>(js.Left().pressed);
@@ -95,6 +96,7 @@ CmdPitchSource::CmdPitchSource(const NeuroPolicySpec &policy_spec, const ModuleS
 
 bool CmdPitchSource::reset() {
   cmd_pitch_ = 0.0F;
+  joystick_rules_.clear();
   joystick_rules_.emplace_back([this](const joystick::State &js) -> std::string {
     if (not joystick_enabled_) return "";
     return fmt::format("Policy/CmdPitch/SetPitchUnscaled:{}", js.ras_y());
@@ -169,6 +171,7 @@ CmdHeightSource::CmdHeightSource(const NeuroPolicySpec &policy_spec, const Modul
 
 bool CmdHeightSource::reset() {
   cmd_height_ = default_cmd_height_;
+  joystick_rules_.clear();
   joystick_rules_.emplace_back([this](const joystick::State &js) -> std::string {
     return (joystick_enabled_ and js.Up().on_press) ? "Policy/CmdHeight/IncreaseHeight" : "";
   });

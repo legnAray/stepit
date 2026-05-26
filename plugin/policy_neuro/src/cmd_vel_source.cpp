@@ -47,6 +47,7 @@ bool CmdVelSource::reset() {
   cmd_stall_            = true;
   velocity_turbo_ratio_ = 0.0;
 
+  joystick_rules_.clear();
   joystick_rules_.emplace_back([this](const joystick::State &js) -> std::string {
     if (not joystick_enabled_) return "";
     return fmt::format("Policy/CmdVel/SetTurboRatio:{}", (js.rt() + 1.0) / 2.0);

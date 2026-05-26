@@ -436,7 +436,6 @@ Agent::State Agent::eventPolicy() {
   if (state_tick_ == 0) {
     if (not active_policy_->reset()) {
       STEPIT_CRIT("Failed to initialize the policy.");
-      active_policy_->exit();
       return State::kResting;
     }
     policy_timer_.clear();

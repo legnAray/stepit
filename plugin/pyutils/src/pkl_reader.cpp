@@ -30,7 +30,9 @@ PklReader::PklReader(const std::string &path) {
   auto builtins  = pybind11::module_::import("builtins");
   auto pickle    = pybind11::module_::import("pickle");
   auto numpy     = pybind11::module_::import("numpy");
-  auto data      = pickle.attr("load")(builtins.attr("open")(fs::canonical(resolved_path).string(), "rb"));
+  auto file      = builtins.attr("open")(fs::canonical(resolved_path).string(), "rb");
+  auto data      = pickle.attr("load")(file);
+  file.attr("close")();
   auto data_type = pybind11::str(pybind11::type::of(data)).cast<std::string>();
 
   STEPIT_ASSERT(pybind11::isinstance<pybind11::dict>(data), "Expected '{}' to contain a pickled dict, but got '{}'.",
