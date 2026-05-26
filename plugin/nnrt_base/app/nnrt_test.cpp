@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cstring>
 #include <iostream>
 
@@ -24,6 +25,10 @@ int main(int argc, char *argv[]) {
           "YAML configuration file for the model")
       ("verbosity,v", po::value<int>(),
           "Verbosity level (0-3)")
+      ("speed-iterations", po::value<int>()->default_value(1000),
+          "Number of measured speed-test inference iterations")
+      ("speed-warmup", po::value<int>()->default_value(10),
+          "Number of warmup inference iterations before speed test")
       (" arg1 arg2 ...",
           "Plugins arguments (after '--')")
       ;
@@ -103,5 +108,51 @@ int main(int argc, char *argv[]) {
       }
     }
   }
+
+  int speed_iterations = arg_map["speed-iterations"].as<int>();
+  int speed_warmup     = arg_map["speed-warmup"].as<int>();
+  if (speed_iterations <= 0) {
+    fmt::print(std::cerr, "{} Invalid speed-iterations '{}'. Expected a positive integer.\n", kErrorPrefix,
+               speed_iterations);
+    return -1;
+  }
+  if (speed_warmup < 0) {
+    fmt::print(std::cerr, "{} Invalid speed-warmup '{}'. Expected a non-negative integer.\n", kErrorPrefix,
+               speed_warmup);
+    return -1;
+  }
+
+  std::vector<std::vector<float>> inputs;
+  inputs.resize(model1->getNumInputs());
+  for (std::size_t i{}; i < model1->getNumInputs(); ++i) {
+    if (not model1->isInputRecurrent(i)) {
+      inputs[i] = std::vector<float>(model1->getInputSize(i), 0.0F);
+      model1->setInput(i, inputs[i].data());
+    }
+  }
+
+  model1->clearState();
+  model1->warmup(speed_warmup);
+  model1->clearState();
+
+  displayFormattedBanner(60, nullptr, "Speed test");
+  auto start_time = std::chrono::steady_clock::now();
+  for (int step{}; step < speed_iterations; ++step) {
+    for (std::size_t i{}; i < model1->getNumInputs(); ++i) {
+      if (not model1->isInputRecurrent(i)) model1->setInput(i, inputs[i].data());
+    }
+    model1->runInference();
+    for (std::size_t i{}; i < model1->getNumOutputs(); ++i) model1->getOutput(i);
+  }
+  const auto elapsed      = std::chrono::duration<double>(std::chrono::steady_clock::now() - start_time).count();
+  const double average_us = elapsed * 1e6 / static_cast<double>(speed_iterations);
+  const double average_ms = average_us / 1e3;
+  const double throughput = static_cast<double>(speed_iterations) / elapsed;
+
+  fmt::print("Warmup iterations: {}\n", speed_warmup);
+  fmt::print("Measured iterations: {}\n", speed_iterations);
+  fmt::print("Total time: {:.3f} ms\n", elapsed * 1e3);
+  fmt::print("Average latency: {:.3f} us ({:.6f} ms)\n", average_us, average_ms);
+  fmt::print("Throughput: {:.3f} inference/s\n", throughput);
   return 0;
 }
