@@ -12,11 +12,11 @@
 
 namespace stepit {
 void initializeACL() {
-  static bool initialized{false};
-  if (not initialized) {
-    initialized = true;
+  static bool initialized = [] {
     STEPIT_ACL_CALL(aclInit, nullptr);
-  }
+    return true;
+  }();
+  static_cast<void>(initialized);
 }
 
 AscendCLApi::AscendCLApi(const std::string &path, const yml::Node &config)
