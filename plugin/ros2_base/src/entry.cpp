@@ -3,7 +3,9 @@
 
 extern "C" {
 int stepit_plugin_init(int &argc, char **argv) {
-  rclcpp::init(argc, argv, rclcpp::InitOptions(), rclcpp::SignalHandlerOptions::SigTerm);
+  if (not rclcpp::ok()) {
+    rclcpp::init(argc, argv, rclcpp::InitOptions(), rclcpp::SignalHandlerOptions::SigTerm);
+  }
   std::string node_name{"stepit_ros2"};
   stepit::getenv("STEPIT_ROS2_NODE_NAME", node_name);
   stepit::getNode() = rclcpp::Node::make_shared(node_name);
