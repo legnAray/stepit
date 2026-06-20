@@ -24,38 +24,37 @@ const std::map<std::string, rclcpp::HistoryPolicy> kHistoryPolicyMap = {
 rclcpp::Node::SharedPtr &getNode() { return g_node; }
 
 rclcpp::QoS &getDefaultQoS() {
-  static rclcpp::QoS default_qos{rclcpp::SensorDataQoS()};
-  static bool initialized = false;
-  if (not initialized) {
+  static rclcpp::QoS default_qos = [] {
+    rclcpp::QoS qos{rclcpp::SensorDataQoS()};
     std::string reliability, durability, history;
     if (getenv("STEPIT_ROS2_QOS_RELIABILITY", reliability)) {
       toLowercaseInplace(reliability);
       auto reliability_policy = kReliabilityPolicyMap.find(reliability);
       STEPIT_ASSERT(reliability_policy != kReliabilityPolicyMap.end(), "Unknown QoS reliability '{}'.", reliability);
-      default_qos.reliability(reliability_policy->second);
+      qos.reliability(reliability_policy->second);
     }
 
     if (getenv("STEPIT_ROS2_QOS_DURABILITY", durability)) {
       toLowercaseInplace(durability);
       auto durability_policy = kDurabilityPolicyMap.find(durability);
       STEPIT_ASSERT(durability_policy != kDurabilityPolicyMap.end(), "Unknown QoS durability '{}'.", durability);
-      default_qos.durability(durability_policy->second);
+      qos.durability(durability_policy->second);
     }
 
     if (getenv("STEPIT_ROS2_QOS_HISTORY", history)) {
       char *end{nullptr};
       long value = std::strtol(history.c_str(), &end, 10);
-      if (*end == '\0') {  // integer
-        default_qos.keep_last(static_cast<std::size_t>(value));
+      if (*end == '\0' and value > 0) {
+        qos.keep_last(static_cast<std::size_t>(value));
       } else {
         toLowercaseInplace(history);
         auto history_policy = kHistoryPolicyMap.find(history);
         STEPIT_ASSERT(history_policy != kHistoryPolicyMap.end(), "Unknown QoS history '{}'.", history);
-        default_qos.history(history_policy->second);
+        qos.history(history_policy->second);
       }
     }
-    initialized = true;
-  }
+    return qos;
+  }();
 
   return default_qos;
 }

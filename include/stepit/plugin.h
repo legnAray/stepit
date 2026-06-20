@@ -7,6 +7,7 @@
 namespace stepit {
 constexpr const char *kPluginPrefix = "libstepit_plugin_";
 constexpr const char *kPluginSuffix = ".so";
+constexpr const char *kPluginEntrySuffix = "_entry";
 
 class PluginManager {
  public:

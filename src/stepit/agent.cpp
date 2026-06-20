@@ -23,6 +23,7 @@ Agent::Agent(const std::string &robot_factory, const std::vector<std::string> &c
 
 void Agent::addPolicy(const std::string &policy_factory, const std::string &home_dir) {
   auto policy = Policy::make(policy_factory, spec(), home_dir);
+  STEPIT_ASSERT(policy->getControlFreq() > 0, "Control frequency of policy '{}' must be positive.", policy->getName());
   if (communication_.getFreq() % policy->getControlFreq() != 0) {
     STEPIT_WARN("Policy control frequency ({}) is not a divisor of the communication frequency ({}).",
                 policy->getControlFreq(), communication_.getFreq());
@@ -86,6 +87,8 @@ void Agent::mainLoop() {
       robot_connected = communication_.isConnected();
     } else if (not communication_.isConnected()) {
       STEPIT_CRIT("Agent quit due to interrupted communication.");
+      agent_started_ = false;
+      trySwitchState(State::kResting);
       return;
     } else {
       mainEvent();
@@ -267,7 +270,8 @@ void Agent::stepStateMachine() {
 }
 
 void Agent::trySwitchState(State next_state) {
-  if (next_state > State::kResting and not(next_state == State::kPolicy and isActivePolicyTrusted())) {
+  if (spec().safety.enabled and next_state > State::kResting and
+      not(next_state == State::kPolicy and isActivePolicyTrusted())) {
     LowState low_state{communication_.getLowState()};
     if (std::abs(low_state.imu.rpy[0]) > spec().safety.roll or std::abs(low_state.imu.rpy[1]) > spec().safety.pitch) {
       next_state = State::kFrozen;
@@ -292,6 +296,10 @@ void Agent::onExit(State curr_state) {
       communication_.setFrozen(false);
       break;
     case State::kPolicy:
+      for (auto &&request : policy_requests_) {
+        request.response(kNotInCorrectState, "Policy stopped before the request was handled.");
+      }
+      policy_requests_.clear();
       active_policy_->exit();
       if (policy_timer_.count() > 0) {
         STEPIT_LOG("Average policy time: {}.", policy_timer_.mean<USec>());
@@ -428,7 +436,6 @@ Agent::State Agent::eventPolicy() {
   if (state_tick_ == 0) {
     if (not active_policy_->reset()) {
       STEPIT_CRIT("Failed to initialize the policy.");
-      active_policy_->exit();
       return State::kResting;
     }
     policy_timer_.clear();

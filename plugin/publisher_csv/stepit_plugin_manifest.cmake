@@ -1,0 +1,1 @@
+stepit_declare_plugin(NAME publisher_csv)

@@ -60,12 +60,11 @@ Read the corresponding `README.md` first if you use any of the plugins.
 - [`debugging_helper`](plugin/debugging_helper): Helper utilities for debugging.
 - [`field_base`](plugin/field_base): Field registration and generic field operators.
 - [`joystick_base`](plugin/joystick_base): Interface for general joystick and joystick control.
+- [`joystick_redis`](plugin/joystick_redis): Controlling with joystick data read from Redis.
 - [`joystick_udp`](plugin/joystick_udp): Controlling with retroid gamepads.
 - [`joystick_usb`](plugin/joystick_usb): Controlling with USB joysticks, e.g. Xbox 360 controller.
 - [`nnrt_base`](plugin/nnrt_base): Interface for neural networks.
-- [`nnrt_ascendcl`](plugin/nnrt_ascendcl): Neural network inference on Ascend AI processors, e.g. OrangePI AIpro.
 - [`nnrt_onnxruntime`](plugin/nnrt_onnxruntime): Neural network inference on general x86_64 processors.
-- [`nnrt_rknnrt`](plugin/nnrt_rknnrt): Neural network inference on Rockchip platforms, e.g. RK3588.
 - [`nnrt_tensorrt`](plugin/nnrt_tensorrt): Neural network inference on NVIDIA GPUs and Jetson platforms, e.g. Jetson Orin NX.
 - [`nnrt_torchjit`](plugin/nnrt_torchjit): Neural network inference with TorchScript (PyTorch JIT) models.
 - [`policy_neuro`](plugin/policy_neuro): Neural network-based control policy.
@@ -75,12 +74,13 @@ Read the corresponding `README.md` first if you use any of the plugins.
 - [`policy_neuro_ros2`](plugin/policy_neuro_ros2): ROS2 extensions for plugin `policy_neuro`.
 - [`publisher_csv`](plugin/publisher_csv): Publisher for writing robot data to csv file.
 - [`pyutils`](plugin/pyutils): Python utilities for C++ modules.
+- [`redis_base`](plugin/redis_base): Reusable Redis client support for other plugins.
 - [`robot_deeprobotics_lite3`](plugin/robot_deeprobotics_lite3): Controlling the DeepRobotics Lite3 robot.
 - [`robot_deeprobotics_x30`](plugin/robot_deeprobotics_x30): Controlling the DeepRobotics X30 robot (Deprecated).
 - [`robot_unitree_aliengo`](plugin/robot_unitree): Controlling the Unitree Aliengo robot.
 - [`robot_unitree_go1`](plugin/robot_unitree): Controlling the Unitree Go1 robot.
 - [`robot_unitree_b1`](plugin/robot_unitree): Controlling the Unitree B1 robot.
-- [`robot_unitree2`](plugin/robot_unitree2): Controlling Unitree Go2, B2 and G1 robots, and with Unitree joysticks.
+- [`robot_unitree2`](plugin/robot_unitree2): Controlling Unitree Go2, B2, A2 and G1 robots, and with Unitree joysticks.
 - [`robot_unitree2_ros2`](plugin/robot_unitree2_ros2): Controlling Unitree robots with unitree_ros2.
 - [`ros_base`](plugin/ros_base): ROS extensions, e.g. subscribing joysticks and publishing states.
 - [`ros2_base`](plugin/ros2_base): ROS2 extensions, e.g. subscribing joysticks and publishing states.

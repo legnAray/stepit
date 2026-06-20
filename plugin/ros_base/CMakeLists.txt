@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.23)
 project(stepit_plugin_ros_base)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
@@ -7,12 +7,10 @@ project(stepit_plugin_ros_base)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin QUIET COMPONENTS roscpp sensor_msgs std_msgs stepit_ros_msgs)
-if (NOT catkin_FOUND)
-  message(STATUS "Skipped plugin '${PROJECT_NAME}': Missing catkin.")
-  return()
-endif ()
-if (NOT stepit_ros_msgs_FOUND)
+if (STEPIT_BUILDING_WITH_CATKIN)
+  find_package(catkin REQUIRED COMPONENTS roscpp sensor_msgs std_msgs stepit_ros_msgs)
+else ()
+  find_package(catkin REQUIRED COMPONENTS roscpp sensor_msgs std_msgs)
   add_subdirectory(${STEPIT_HOME_DIRECTORY}/package/ros/stepit_ros_msgs ../stepit_ros_msgs)
 endif ()
 
@@ -107,7 +105,7 @@ endif ()
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
     INCLUDE_DIRS ${STEPIT_INCLUDE_DIRS} include
-    LIBRARIES ${STEPIT_LIBRARIES} ${PROJECT_NAME}
+    LIBRARIES stepit_core ${PROJECT_NAME}
     CATKIN_DEPENDS roscpp sensor_msgs std_msgs stepit_ros_msgs
     # DEPENDS system_lib
 )
@@ -131,30 +129,60 @@ endif ()
 #)
 
 ## Declare a C++ library
-stepit_add_plugin(${PROJECT_NAME}
-    SOURCES
+stepit_add_plugin(${PROJECT_NAME})
+target_sources(${PROJECT_NAME}
+    PRIVATE
       src/control.cpp
       src/joystick.cpp
       src/node_handle.cpp
       src/publisher.cpp
       src/spin.cpp
-    ENTRY
+    PUBLIC
+      FILE_SET HEADERS
+      BASE_DIRS include
+      FILES
+        include/stepit/ros/control.h
+        include/stepit/ros/joystick.h
+        include/stepit/ros/node_handle.h
+        include/stepit/ros/publisher.h
+)
+foreach (catkin_include_dir ${catkin_INCLUDE_DIRS})
+  target_include_directories(${PROJECT_NAME} PUBLIC "$<BUILD_INTERFACE:${catkin_include_dir}>")
+  if (NOT catkin_include_dir MATCHES "^${CMAKE_BINARY_DIR}(/|$)" AND
+      NOT catkin_include_dir MATCHES "^${CATKIN_DEVEL_PREFIX}(/|$)")
+    target_include_directories(${PROJECT_NAME} PUBLIC "$<INSTALL_INTERFACE:${catkin_include_dir}>")
+  endif ()
+endforeach ()
+target_link_libraries(${PROJECT_NAME} PUBLIC
+    stepit_core
+    stepit_plugin_joystick_base
+    ${catkin_LIBRARIES}
+)
+install(TARGETS ${PROJECT_NAME}
+    EXPORT stepitTargets
+    LIBRARY DESTINATION ${STEPIT_LIB_DESTINATION}
+    ARCHIVE DESTINATION ${STEPIT_LIB_DESTINATION}
+    FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+set(entry_target ${PROJECT_NAME}_entry)
+stepit_add_entry(${entry_target})
+target_sources(${entry_target}
+    PRIVATE
       src/entry.cpp
-    INCLUDES
-      include ${catkin_INCLUDE_DIRS}
-    LINK_LIBS
-      ${catkin_LIBRARIES}
-    DEPENDS
-      joystick_base
+)
+target_link_libraries(${entry_target} PRIVATE ${PROJECT_NAME})
+install(TARGETS ${entry_target}
+    EXPORT stepitTargets
+    LIBRARY DESTINATION ${STEPIT_LIB_DESTINATION}
 )
 if (TARGET stepit_ros_msgs)
-  target_link_libraries(${PROJECT_NAME} PUBLIC stepit_ros_msgs)
+  target_link_libraries(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:stepit_ros_msgs>)
 endif ()
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context

@@ -98,34 +98,6 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CATKIN_DEVEL_PREFIX}/lib/${PROJECT_NAME})
 set(STEPIT_BUILDING_WITH_CATKIN TRUE)
 add_subdirectory(../../.. ../stepit_core)
-get_property(STEPIT_LIBRARIES GLOBAL PROPERTY STEPIT_LIBRARIES)
-get_property(STEPIT_CORE_DEPENDENCIES TARGET stepit_core PROPERTY INTERFACE_LINK_LIBRARIES)
-foreach (library ${STEPIT_LIBRARIES} ${STEPIT_CORE_DEPENDENCIES})
-  if (TARGET ${library})
-    get_property(${library}_INTERFACE_INCLUDE_DIRS TARGET ${library} PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
-    list(APPEND STEPIT_INCLUDE_DIRS ${${library}_INCLUDE_DIRS} ${${library}_INTERFACE_INCLUDE_DIRS})
-  endif ()
-endforeach ()
-
-function(filter_interface_dirs variable_name)
-    set(input_list "${${variable_name}}")
-    set(PROCESSED_DIRS "")
-
-    foreach (dir IN LISTS input_list)
-        if (dir MATCHES "^\\$<INSTALL_INTERFACE:.*>$")
-            continue()
-        elseif (dir MATCHES "^\\$<BUILD_INTERFACE:(.*)>$")
-            string(REGEX REPLACE "^\\$<BUILD_INTERFACE:(.*)>$" "\\1" extracted_dir "${dir}")
-            list(APPEND PROCESSED_DIRS "${extracted_dir}")
-        else ()
-            list(APPEND PROCESSED_DIRS "${dir}")
-        endif ()
-    endforeach ()
-
-    set(${variable_name} "${PROCESSED_DIRS}" PARENT_SCOPE)
-endfunction()
-
-filter_interface_dirs(STEPIT_INCLUDE_DIRS)
 
 ## The catkin_package macro generates cmake config files for your package
 ## Declare things to be passed to dependent projects
@@ -134,8 +106,8 @@ filter_interface_dirs(STEPIT_INCLUDE_DIRS)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-    INCLUDE_DIRS ${STEPIT_INCLUDE_DIRS}
-    LIBRARIES ${STEPIT_LIBRARIES}
+    # INCLUDE_DIRS ${STEPIT_INCLUDE_DIRS}
+    # LIBRARIES ${STEPIT_LIBRARIES}
     #  CATKIN_DEPENDS other_catkin_pkg
     #  DEPENDS system_lib
 )

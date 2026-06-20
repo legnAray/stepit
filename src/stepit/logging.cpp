@@ -34,15 +34,16 @@ void LoggingModule::clearStyle() {
 }
 
 LoggingModule &LoggingModule::instance() {
-  static LoggingModule *logging_module{nullptr};
-  if (logging_module == nullptr) {
-    logging_module = new LoggingModule();
+  static LoggingModule logging_module;
+  static bool initialized = [] {
     long verbosity{};
     if (getenv("STEPIT_VERBOSITY", verbosity)) {
-      logging_module->setVerbosity(static_cast<VerbosityLevel>(verbosity));
+      logging_module.setVerbosity(static_cast<VerbosityLevel>(verbosity));
     }
-  }
-  return *logging_module;
+    return true;
+  }();
+  static_cast<void>(initialized);
+  return logging_module;
 }
 
 void LoggingModule::logImpl(const std::string &info) {

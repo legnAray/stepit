@@ -10,24 +10,31 @@ PluginManager::PluginManager(std::vector<std::string> &args) {
   getenv("STEPIT_BLACKLIST_PLUGINS", blacklist_plugins_);
 
   // Make C-style argc and argv from args
-  int argc    = static_cast<int>(args.size());
-  char **argv = new char *[argc + 1];
+  int argc          = static_cast<int>(args.size());
+  int original_argc = argc;
+  char **argv       = new char *[argc + 1];
   for (int i{}; i < argc; ++i) {
     argv[i] = new char[args[i].length() + 1];
     std::strcpy(argv[i], args[i].c_str());
   }
   argv[argc] = nullptr;
 
-  for (const auto &dir : getPluginDirs(args[0])) {
-    if (not dir.empty()) loadPlugins(dir, argc, argv);
+  try {
+    for (const auto &dir : getPluginDirs(args[0])) {
+      if (not dir.empty()) loadPlugins(dir, argc, argv);
+    }
+  } catch (...) {
+    for (int i{}; i < original_argc; ++i) delete[] argv[i];
+    delete[] argv;
+    throw;
   }
 
   // Copy back to args
   args.clear();
   for (int i{}; i < argc; ++i) {
     args.emplace_back(argv[i]);
-    delete[] argv[i];
   }
+  for (int i{}; i < original_argc; ++i) delete[] argv[i];
   delete[] argv;
 }
 
@@ -124,6 +131,7 @@ std::string PluginManager::getPluginName(const std::string &path) {
 
   if (startsWith(name, kPluginPrefix)) name = name.substr(prefix_len);
   if (endsWith(name, kPluginSuffix)) name = name.substr(0, name.size() - suffix_len);
+  if (endsWith(name, kPluginEntrySuffix)) name = name.substr(0, name.size() - std::strlen(kPluginEntrySuffix));
   return name;
 }
 

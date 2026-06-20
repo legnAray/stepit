@@ -57,10 +57,10 @@ int main(int argc, char *argv[]) {
   bool degree   = vm["degree"].as<bool>();
 
   Quatd quaterion;
-  if (std::string("quaternion").rfind(in_type) != std::string::npos) {
+  if (startsWith("quaternion", in_type)) {
     EXIT_IF(value.size() != 4, "Quaternion requires 4 values.");
     quaterion = Quatd(value[0], value[1], value[2], value[3]);
-  } else if (std::string("euler").rfind(in_type) != std::string::npos) {
+  } else if (startsWith("euler", in_type)) {
     EXIT_IF(value.size() != 3, "Euler angles require 3 values.");
     if (degree) {
       value[0] = deg2rad(value[0]);
@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
       value[2] = deg2rad(value[2]);
     }
     quaterion = Quatd::fromEulerAngles(value[0], value[1], value[2]);
-  } else if (std::string("matrix").rfind(in_type) != std::string::npos) {
+  } else if (startsWith("matrix", in_type)) {
     EXIT_IF(value.size() != 9, "Matrix requires 9 values.");
     Mat3d m;
     for (int i{}; i < 9; ++i) m(i / 3, i % 3) = value[i];
@@ -77,17 +77,17 @@ int main(int argc, char *argv[]) {
     EXIT_IF(true, "Unknown input type '" << in_type << "'.");
   }
 
-  if (std::string("quaternion").rfind(out_type) != std::string::npos) {
+  if (startsWith("quaternion", out_type)) {
     std::cout << "Quaternion: " << "w = " << quaterion.w() << ", x = " << quaterion.x() << ", y = " << quaterion.y()
               << ", z = " << quaterion.z() << std::endl;
-  } else if (std::string("euler").rfind(out_type) != std::string::npos) {
+  } else if (startsWith("euler", out_type)) {
     auto euler = quaterion.eulerAngles();
     std::cout << "Euler angles: "
               << "roll = " << euler[0] << "rad (" << euler[0] * 180 / M_PI << "°), "
               << "pitch = " << euler[1] << "rad (" << euler[1] * 180 / M_PI << "°), "
               << "yaw = " << euler[2] << "rad (" << euler[2] * 180 / M_PI << "°)"
               << " in ZYX order" << std::endl;
-  } else if (std::string("matrix").rfind(out_type) != std::string::npos) {
+  } else if (startsWith("matrix", out_type)) {
     std::cout << "Rotation matrix:\n" << quaterion.matrix() << std::endl;
   } else {
     EXIT_IF(true, "Unknown output type '" << out_type << "'.");

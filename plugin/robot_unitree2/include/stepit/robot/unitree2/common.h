@@ -1,7 +1,12 @@
 #ifndef STEPIT_ROBOT_UNITREE2_COMMON_H_
 #define STEPIT_ROBOT_UNITREE2_COMMON_H_
 
+#include <cstdint>
+#include <memory>
+#include <string>
+
 #include <unitree/robot/b2/motion_switcher/motion_switcher_client.hpp>
+#include <unitree/robot/go2/robot_state/robot_state_client.hpp>
 
 namespace u2_sdk = unitree::robot;
 
@@ -18,10 +23,29 @@ constexpr float kVelStop             = 16000.0F;
 constexpr uint8_t kGo2MotorServoMode = 0x01;
 constexpr uint8_t kB2MotorServoMode  = 0x0A;
 
-class Unitree2ServiceClient {
+class Unitree2Dds {
  public:
-  Unitree2ServiceClient(const Unitree2ServiceClient &)            = delete;
-  Unitree2ServiceClient &operator=(const Unitree2ServiceClient &) = delete;
+  Unitree2Dds(const Unitree2Dds &)            = delete;
+  Unitree2Dds &operator=(const Unitree2Dds &) = delete;
+  static void initialize() { instance().initialize_(); }
+  static bool isSimulated() { return instance().isSimulated_(); }
+
+ private:
+  Unitree2Dds() = default;
+  void initialize_();
+  bool isSimulated_() const;
+  static Unitree2Dds &instance();
+
+  bool initialized_{false};
+  bool simulated_{false};
+  long domain_id_{0};
+  std::string network_interface_{""};
+};
+
+class Unitree2MotionSwitcher {
+ public:
+  Unitree2MotionSwitcher(const Unitree2MotionSwitcher &)            = delete;
+  Unitree2MotionSwitcher &operator=(const Unitree2MotionSwitcher &) = delete;
   static void initialize() { instance().initialize_(); }
   static void status() { instance().status_(); }
   static void activate(const std::string &mode) { instance().activate_(mode); }
@@ -30,22 +54,36 @@ class Unitree2ServiceClient {
   static void enable() { instance().enable_(); }
 
  private:
-  Unitree2ServiceClient() = default;
+  Unitree2MotionSwitcher() = default;
   void initialize_();
-  void status_() const;
+  void status_();
   void activate_(const std::string &mode);
   void deactivate_();
   void disable_();
   void enable_();
-  static Unitree2ServiceClient &instance();
+  static Unitree2MotionSwitcher &instance();
 
   bool initialized_{false};
-  bool simulated_{false};
   bool disabled_{false};
-  long domain_id_{0};
-  std::string network_interface_{""};
   std::unique_ptr<u2_sdk::b2::MotionSwitcherClient> client_;
   std::string robot_type_, motion_type_;
+};
+
+class Unitree2ServiceSwitcher {
+ public:
+  Unitree2ServiceSwitcher(const Unitree2ServiceSwitcher &)            = delete;
+  Unitree2ServiceSwitcher &operator=(const Unitree2ServiceSwitcher &) = delete;
+  static void initialize() { instance().initialize_(); }
+  static void serviceSwitch(const std::string &name, bool enable) { instance().serviceSwitch_(name, enable); }
+
+ private:
+  Unitree2ServiceSwitcher() = default;
+  void initialize_();
+  void serviceSwitch_(const std::string &name, bool enable);
+  static Unitree2ServiceSwitcher &instance();
+
+  bool initialized_{false};
+  std::unique_ptr<u2_sdk::go2::RobotStateClient> client_;
 };
 }  // namespace stepit
 

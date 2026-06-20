@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.23)
 project(stepit_plugin_nnrt_onnxruntime)
 set(CMAKE_CXX_STANDARD 17)
 
@@ -8,8 +8,7 @@ if (ONNXRUNTIME_SYSTEM_PROCESSOR STREQUAL "x86_64")
 elseif (ONNXRUNTIME_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)$")
   set(ONNXRUNTIME_ARCHIVE_ARCH "aarch64")
 else ()
-  message(STATUS "Skipped plugin '${PROJECT_NAME}': Requires x86_64 or arm64/aarch64 architectures, got '${CMAKE_SYSTEM_PROCESSOR}'.")
-  return()
+  message(FATAL_ERROR "Unsupported architecture '${CMAKE_SYSTEM_PROCESSOR}' for ${PROJECT_NAME}.")
 endif ()
 
 get_library_directory(onnxruntime ONNXRUNTIME_LIB_DIR)
@@ -50,19 +49,33 @@ if (EXISTS "${ONNXRUNTIME_INCLUDE_DIR}/onnxruntime")
   set(ONNXRUNTIME_INCLUDE_DIR ${ONNXRUNTIME_INCLUDE_DIR}/onnxruntime)
 endif ()
 
-stepit_add_plugin(${PROJECT_NAME}
-    SOURCES
+stepit_add_plugin(${PROJECT_NAME})
+target_sources(${PROJECT_NAME}
+    PRIVATE
       src/onnxruntime.cpp
-    INCLUDES
-      include
-      ${ONNXRUNTIME_INCLUDE_DIR}
-    LINK_DIRS
-      ${ONNXRUNTIME_DIR}/lib
-    LINK_LIBS
-      onnxruntime
-    DEPENDS
-      nnrt_base
+    PUBLIC
+      FILE_SET HEADERS
+      BASE_DIRS include
+      FILES
+        include/stepit/nnrt/onnxruntime.h
+)
+target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${ONNXRUNTIME_INCLUDE_DIR}>)
+target_link_directories(${PROJECT_NAME} BEFORE PUBLIC $<BUILD_INTERFACE:${ONNXRUNTIME_DIR}/lib>)
+target_link_libraries(${PROJECT_NAME} PUBLIC
+    stepit_core
+    stepit_plugin_nnrt_base
+    onnxruntime
+)
+set_target_properties(${PROJECT_NAME} PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${ONNXRUNTIME_DIR}/lib")
+install(TARGETS ${PROJECT_NAME}
+    EXPORT stepitTargets
+    LIBRARY DESTINATION ${STEPIT_LIB_DESTINATION}
+    ARCHIVE DESTINATION ${STEPIT_LIB_DESTINATION}
+    FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
-stepit_add_executable(onnx_metadata2yaml app/onnx_metadata2yaml.cpp)
+add_executable(onnx_metadata2yaml app/onnx_metadata2yaml.cpp)
 target_link_libraries(onnx_metadata2yaml PRIVATE ${PROJECT_NAME})
+install(TARGETS onnx_metadata2yaml
+    RUNTIME DESTINATION ${STEPIT_BIN_DESTINATION}
+)

@@ -8,6 +8,9 @@ RobotSpec::RobotSpec(const yml::Node &config) {
   dof      = joint_names.size();
   num_legs = foot_names.size();
   config["comm_freq"].to(comm_freq);
+  STEPIT_ASSERT(dof > 0, "Robot config 'joint_names' must not be empty.");
+  STEPIT_ASSERT(num_legs > 0, "Robot config 'foot_names' must not be empty.");
+  STEPIT_ASSERT(comm_freq > 0, "Robot config 'comm_freq' must be positive.");
 
   kp.resize(dof);
   kd.resize(dof);
@@ -35,6 +38,12 @@ RobotSpec::RobotSpec(const yml::Node &config) {
   config["lying_cfg"].to(lying_cfg);
   config["auto_damped_mode"].to(auto_damped_mode);
   config["kd_damped_mode"].to(kd_damped_mode, true);
+
+  STEPIT_ASSERT_EQ(kp.size(), dof, "Robot config 'stiffness/kp/Kp' size mismatch.");
+  STEPIT_ASSERT_EQ(kd.size(), dof, "Robot config 'damping/kd/Kd' size mismatch.");
+  STEPIT_ASSERT_EQ(stuck_threshold.size(), dof, "Robot config 'stuck_threshold' size mismatch.");
+  STEPIT_ASSERT_EQ(standing_cfg.size(), dof, "Robot config 'standing_cfg' size mismatch.");
+  STEPIT_ASSERT_EQ(lying_cfg.size(), dof, "Robot config 'lying_cfg' size mismatch.");
 }
 
 template <typename T>

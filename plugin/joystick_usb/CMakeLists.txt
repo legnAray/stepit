@@ -1,16 +1,23 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.23)
 project(stepit_plugin_joystick_usb)
 
-set(GAMEPAD_ENABLE_SHARED OFF)
-set(GAMEPAD_ENABLE_STATIC OFF)
-set(GAMEPAD_ENABLE_INSTALL OFF)
-set(GAMEPAD_ENABLE_TESTS OFF)
-init_submodule(extern/joystick_sdk/libgamepad WORKING_DIRECTORY ${STEPIT_HOME_DIRECTORY})
-add_subdirectory(${STEPIT_HOME_DIRECTORY}/extern/joystick_sdk/libgamepad libgamepad)
-
-stepit_add_plugin(${PROJECT_NAME}
-    SOURCES src/usb.cpp
-    INCLUDES include
-    LINK_LIBS gamepad
-    DEPENDS joystick_base
+stepit_add_plugin(${PROJECT_NAME})
+target_sources(${PROJECT_NAME}
+    PRIVATE
+      src/usb.cpp
+    PUBLIC
+      FILE_SET HEADERS
+      BASE_DIRS include
+      FILES
+        include/stepit/joystick/usb.h
+)
+target_link_libraries(${PROJECT_NAME} PUBLIC
+    stepit_core
+    stepit_plugin_joystick_base
+)
+install(TARGETS ${PROJECT_NAME}
+    EXPORT stepitTargets
+    LIBRARY DESTINATION ${STEPIT_LIB_DESTINATION}
+    ARCHIVE DESTINATION ${STEPIT_LIB_DESTINATION}
+    FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )

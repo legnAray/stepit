@@ -1,39 +1,24 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.23)
 project(stepit_plugin_policy_neuro_redis)
 
-find_package(PkgConfig QUIET)
-if (NOT PkgConfig_FOUND)
-  message(STATUS "Skipped plugin '${PROJECT_NAME}': Missing PkgConfig.")
-  return()
-endif ()
-
-pkg_check_modules(HIREDIS QUIET hiredis)
-if (NOT HIREDIS_FOUND)
-  message(STATUS "Skipped plugin '${PROJECT_NAME}': Missing hiredis.")
-  return()
-endif ()
-
-find_package(nlohmann_json QUIET)
-if (NOT nlohmann_json_FOUND)
-  message(STATUS "Skipped plugin '${PROJECT_NAME}': Missing nlohmann_json.")
-  return()
-endif ()
-
-stepit_add_plugin(${PROJECT_NAME}
-    SOURCES
+stepit_add_plugin(${PROJECT_NAME})
+target_sources(${PROJECT_NAME}
+    PRIVATE
       src/field_subscriber_redis.cpp
-      src/redis_client.cpp
-    INCLUDES
-      include
-      ${HIREDIS_INCLUDE_DIRS}
-    LINK_LIBS
-      ${HIREDIS_LIBRARIES}
-      nlohmann_json::nlohmann_json
-    LINK_DIRS
-      ${HIREDIS_LIBRARY_DIRS}
-    FLAGS
-      -Wall -Wextra -Wpedantic -Wno-unused-parameter
-      ${HIREDIS_CFLAGS_OTHER}
-    DEPENDS
-      policy_neuro
+    PUBLIC
+      FILE_SET HEADERS
+      BASE_DIRS include
+      FILES
+        include/stepit/policy_neuro_redis/field_subscriber_redis.h
+)
+target_link_libraries(${PROJECT_NAME} PUBLIC
+    stepit_core
+    stepit_plugin_policy_neuro
+    stepit_plugin_redis_base
+)
+install(TARGETS ${PROJECT_NAME}
+    EXPORT stepitTargets
+    LIBRARY DESTINATION ${STEPIT_LIB_DESTINATION}
+    ARCHIVE DESTINATION ${STEPIT_LIB_DESTINATION}
+    FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )

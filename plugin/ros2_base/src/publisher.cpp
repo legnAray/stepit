@@ -15,6 +15,7 @@ Ros2Publisher::Ros2Publisher() {
 }
 
 void Ros2Publisher::publishStatus() {
+  if (not status_pub_) return;
   auto statuses     = getStatusSnapshot();
   status_msg_.level = diagnostic_msgs::msg::DiagnosticStatus::OK;
   status_msg_.name  = "stepit";
@@ -29,6 +30,7 @@ void Ros2Publisher::publishStatus() {
 }
 
 void Ros2Publisher::publishLowLevel(const RobotSpec &spec, const LowState &state, const LowCmd &cmd) {
+  if (not imu_pub_ or not joint_pub_) return;
   auto timestamp                 = getNode()->now();
   imu_msg_.header.stamp          = timestamp;
   imu_msg_.angular_velocity.x    = state.imu.gyroscope[0];

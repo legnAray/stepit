@@ -1,4 +1,4 @@
 #!/usr/bin/env bash
 
-STEPIT_ARGS="-P ros"
-STEPIT_PLUGIN_ARGS="-r __ns:=${NS:-/stepit}"
+STEPIT_ARGS="${STEPIT_ARGS:-} -P ros"
+STEPIT_PLUGIN_ARGS="${STEPIT_PLUGIN_ARGS:-} -r __ns:=${NS:-/stepit}"

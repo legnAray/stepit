@@ -1,6 +1,6 @@
 # robot_unitree2
 
-StepIt plugin for controlling the Unitree Go2, B2 and G1 robots, and with the Unitree joysticks.
+StepIt plugin for controlling Unitree Go2, B2, A2, and G1 robots, and with the Unitree joysticks.
 
 ### Environment Variables
 
@@ -11,22 +11,31 @@ StepIt plugin for controlling the Unitree Go2, B2 and G1 robots, and with the Un
 ### Provided Factories
 
 - `stepit::RobotApi`:
-  - Quadrupeds: `b2`, `go2`, `go2w`
+  - Quadrupeds: `a2`, `b2`, `go2`, `go2w`
   - Humanoids: `g1` (29DoF), `g1_bfs` (29DoF)
 - `stepit::joystick::Joystick`:
     - `unitree2`: providing joystick input with the Unitree joystick. The `LAS` button is binded to the `L1` + `L2` buttons, and the `RAS` button is binded to the `R1` + `R2` buttons.
 
 ### Executables
 
-- `unitree2_switch_mode`: Switch or query the builtin Unitree2 locomotion state.
+- `unitree2_switch_motion`: Switch or query the builtin Unitree2 locomotion state.
 
     ```shell
-    unitree2_switch_mode help
-    unitree2_switch_mode status
-    unitree2_switch_mode activate <mode>
-    unitree2_switch_mode deactivate
-    unitree2_switch_mode disable
-    unitree2_switch_mode enable
+    unitree2_switch_motion help
+    unitree2_switch_motion status
+    unitree2_switch_motion activate <mode>
+    unitree2_switch_motion deactivate
+    unitree2_switch_motion disable
+    unitree2_switch_motion enable
+    ```
+
+- `unitree2_switch_service`: Switch Unitree service state.
+
+    ```shell
+    unitree2_switch_service help
+    unitree2_switch_service switch <service> off
+    unitree2_switch_service enable <service>
+    unitree2_switch_service disable <service>
     ```
 
 ### Notes

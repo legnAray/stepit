@@ -19,7 +19,7 @@ export STEPIT_PUBLISH_LOW_LEVEL=1      # bool, whether to publish the robot low-
 export STEPIT_PUBLISH_ARRAY=1          # bool, whether to publish other array data
 
 export STEPIT_DEFAULT_JOYSTICK=""      # string, the default joystick (plugin: joystick_base)
-export STEPIT_DEFAULT_NNRTAPI=""       # string, the default neural network runtime (plugin: nnrt_base)
+export STEPIT_DEFAULT_NNRT=""          # string, the default neural network runtime (plugin: nnrt_base)
 
 export STEPIT_JOYSTICK_ID=-1                # int, the joystick ID (/dev/js*) to read (plugin: joystick_native)
 export STEPIT_HOST_IP="192.168.1.120"       # string, the robot host ip (plugin: robot_deeprobotics_*)
@@ -28,6 +28,17 @@ export STEPIT_UNITREE2_DOMAIN_ID=0          # int, DDS domain id for unitree_sdk
 export STEPIT_JOY_NAME=""                   # string, the key mapping type of the joystick (plugin: stepit_ros, stepit_ros2)
 export STEPIT_ROS_NODE_NAME="stepit_ros"    # string, the ROS1 node name (plugin: stepit_ros)
 export STEPIT_ROS2_NODE_NAME="stepit_ros2"  # string, the ROS2 node name (plugin: stepit_ros2)
+
+export STEPIT_REDIS_HOST="127.0.0.1"         # string, Redis host (plugin: redis_base)
+export STEPIT_REDIS_PORT=6379                # int, Redis port (plugin: redis_base)
+export STEPIT_REDIS_DB=0                     # int, Redis db index (plugin: redis_base)
+export STEPIT_REDIS_USERNAME=""              # string, Redis username (plugin: redis_base)
+export STEPIT_REDIS_PASSWORD=""              # string, Redis password (plugin: redis_base)
+export STEPIT_REDIS_CONNECT_TIMEOUT_MS=1000  # int, Redis connect timeout in ms (plugin: redis_base)
+export STEPIT_REDIS_COMMAND_TIMEOUT_MS=50    # int, Redis command timeout in ms (plugin: redis_base)
+
+export STEPIT_JOYSTICK_REDIS_KEY="joystick"       # string, Redis key for joystick state (plugin: joystick_redis)
+export STEPIT_JOYSTICK_REDIS_POLL_INTERVAL_MS=10  # int, Redis polling interval in ms (plugin: joystick_redis)
 
 export STEPIT_ROS2_QOS_RELIABILITY="best_effort"  # string, the ROS2 QoS reliability policy (plugin: stepit_ros2)
 export STEPIT_ROS2_QOS_DURABILITY="volatile"      # string, the ROS2 QoS durability policy (plugin: stepit_ros2)

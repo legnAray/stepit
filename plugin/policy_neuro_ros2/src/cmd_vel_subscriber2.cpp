@@ -70,22 +70,21 @@ void CmdVelSubscriber2::exit() {
 
 void CmdVelSubscriber2::handleControlRequest(ControlRequest request) {
   switch (lookupAction(request.action(), kSubscriberActionMap)) {
-    case SubscriberAction::kEnableSubscriber: {
-      std::lock_guard<std::mutex> lock(mutex_);
-      cmd_vel_msg_ = geometry_msgs::msg::Twist();
-    }
+    case SubscriberAction::kEnableSubscriber:
       subscriber_enabled_.store(true, std::memory_order_release);
       request.response(kSuccess);
       STEPIT_LOG(kStartSubscribingTemplate, "command velocity");
       break;
     case SubscriberAction::kDisableSubscriber:
       subscriber_enabled_.store(false, std::memory_order_relaxed);
+      target_cmd_vel_.setZero();
       request.response(kSuccess);
       STEPIT_LOG(kStopSubscribingTemplate, "command velocity");
       break;
     case SubscriberAction::kSwitchSubscriber: {
       bool subscriber_enabled = not subscriber_enabled_.load(std::memory_order_relaxed);
       subscriber_enabled_.store(subscriber_enabled, std::memory_order_relaxed);
+      if (not subscriber_enabled) target_cmd_vel_.setZero();
       request.response(kSuccess);
       STEPIT_LOG(subscriber_enabled ? kStartSubscribingTemplate : kStopSubscribingTemplate, "command velocity");
       break;

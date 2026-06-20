@@ -1,31 +1,43 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.23)
 project(stepit_plugin_nnrt_tensorrt)
 
-find_package(CUDA QUIET)
-if (NOT CUDA_FOUND)
-  message(STATUS "Skipped plugin '${PROJECT_NAME}': Missing CUDA.")
-  return()
-endif ()
-get_library_directory(nvinfer TENSORRT_LIB_DIR)
-if (NOT TENSORRT_LIB_DIR)
-  message(STATUS "Skipped plugin '${PROJECT_NAME}': Missing TensorRT.")
-  return()
+if (POLICY CMP0146)
+  cmake_policy(PUSH)
+  cmake_policy(SET CMP0146 OLD)
 endif ()
 
-stepit_add_plugin(${PROJECT_NAME}
-    SOURCES
+find_package(CUDA REQUIRED)
+
+if (POLICY CMP0146)
+  cmake_policy(POP)
+endif ()
+get_library_directory(nvinfer TENSORRT_LIB_DIR REQUIRED)
+
+stepit_add_plugin(${PROJECT_NAME})
+target_sources(${PROJECT_NAME}
+    PRIVATE
       src/tensorrt.cpp
-    INCLUDES
-      include
-      ${CUDA_INCLUDE_DIRS}
-    LINK_DIRS
-      ${TENSORRT_LIB_DIR}
-    LINK_LIBS
-      ${CUDA_LIBRARIES}
-      nvinfer
-      nvonnxparser
-    DEPENDS
-      nnrt_base
+    PUBLIC
+      FILE_SET HEADERS
+      BASE_DIRS include
+      FILES
+        include/stepit/nnrt/tensorrt.h
+)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CUDA_INCLUDE_DIRS})
+target_link_directories(${PROJECT_NAME} BEFORE PUBLIC ${TENSORRT_LIB_DIR})
+target_link_libraries(${PROJECT_NAME} PUBLIC
+    stepit_core
+    stepit_plugin_nnrt_base
+    ${CUDA_LIBRARIES}
+    nvinfer
+    nvonnxparser
+)
+set_target_properties(${PROJECT_NAME} PROPERTIES INSTALL_RPATH "${CMAKE_INSTALL_RPATH}:${TENSORRT_LIB_DIR}")
+install(TARGETS ${PROJECT_NAME}
+    EXPORT stepitTargets
+    LIBRARY DESTINATION ${STEPIT_LIB_DESTINATION}
+    ARCHIVE DESTINATION ${STEPIT_LIB_DESTINATION}
+    FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 
 set(TENSORRT_INCLUDE_DIR ${TENSORRT_LIB_DIR}/../include)

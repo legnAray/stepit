@@ -1,5 +1,8 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.23)
 project(stepit)
+
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
 
 if (NOT DEFINED CMAKE_LIBRARY_OUTPUT_DIRECTORY AND
     NOT DEFINED CMAKE_RUNTIME_OUTPUT_DIRECTORY AND
@@ -25,10 +28,10 @@ else ()
   )
 endif ()
 if (NOT DEFINED STEPIT_LIB_DESTINATION)
-  set(STEPIT_LIB_DESTINATION "lib")
+  set(STEPIT_LIB_DESTINATION "${CMAKE_INSTALL_LIBDIR}")
 endif ()
 if (NOT DEFINED STEPIT_BIN_DESTINATION)
-  set(STEPIT_BIN_DESTINATION "bin")
+  set(STEPIT_BIN_DESTINATION "${CMAKE_INSTALL_BINDIR}")
 endif ()
 file(RELATIVE_PATH INSTALL_RPATH
     ${CMAKE_INSTALL_PREFIX}/${STEPIT_BIN_DESTINATION}
@@ -47,7 +50,7 @@ find_package(yaml-cpp REQUIRED)
 init_submodule(extern/llu WORKING_DIRECTORY ${STEPIT_HOME_DIRECTORY})
 add_subdirectory(extern/llu)
 
-stepit_add_library(stepit_core SHARED
+add_library(stepit_core SHARED
     src/stepit/agent.cpp
     src/stepit/communication.cpp
     src/stepit/control_input.cpp
@@ -58,19 +61,36 @@ stepit_add_library(stepit_core SHARED
     src/stepit/spin.cpp
     src/stepit/utils.cpp
 )
-target_compile_definitions(stepit_core PRIVATE STEPIT_CONFIG_DIR=\"${STEPIT_HOME_DIRECTORY}/config\")
+target_compile_definitions(stepit_core PRIVATE STEPIT_CONFIG_DIR="${STEPIT_HOME_DIRECTORY}/config")
 target_compile_definitions(stepit_core PUBLIC FMT_HEADER_ONLY=1)
-target_compile_options(stepit_core PUBLIC -fPIC PRIVATE -Wall -Wextra -Wpedantic -Wno-unused-parameter)
-target_include_directories(stepit_core PUBLIC ${STEPIT_HOME_DIRECTORY}/include)
+target_compile_options(stepit_core PRIVATE -Wall -Wextra -Wpedantic -Wno-unused-parameter)
+target_sources(stepit_core
+    PUBLIC
+      FILE_SET HEADERS
+      BASE_DIRS include
+      FILES
+        include/stepit/agent.h
+        include/stepit/communication.h
+        include/stepit/control_input.h
+        include/stepit/logging.h
+        include/stepit/plugin.h
+        include/stepit/policy.h
+        include/stepit/publisher.h
+        include/stepit/registry.h
+        include/stepit/robot.h
+        include/stepit/spin.h
+        include/stepit/utils.h
+)
 target_link_libraries(stepit_core PUBLIC
-    atomic
     Boost::filesystem
-    Boost::program_options
     Eigen3::Eigen
-    dl
-    llu::llu
     Threads::Threads
+    atomic
+    llu::llu
     yaml-cpp
+)
+target_link_libraries(stepit_core PRIVATE
+    dl
 )
 
 # Check for gettid() function
@@ -82,12 +102,33 @@ if (NOT HAVE_GETTID)
   target_compile_definitions(stepit_core PUBLIC STEPIT_FIX_GETTID)
 endif ()
 
-stepit_add_executable(stepit src/stepit_app/main.cpp)
-stepit_add_executable(rotation_transform src/stepit_app/rotation_transform.cpp)
-stepit_add_plugin(stepit_plugin_builtin SOURCES src/stepit/builtin.cpp)
+add_executable(stepit src/stepit_app/main.cpp)
+target_link_libraries(stepit PRIVATE stepit_core Boost::program_options)
+install(TARGETS stepit
+    RUNTIME DESTINATION ${STEPIT_BIN_DESTINATION}
+)
 
-# Dynamically discover plugins
-set(STEPIT_ALL_PLUGINS "")
+add_executable(rotation_transform src/stepit_app/rotation_transform.cpp)
+target_link_libraries(rotation_transform PRIVATE stepit_core Boost::program_options)
+install(TARGETS rotation_transform
+    RUNTIME DESTINATION ${STEPIT_BIN_DESTINATION}
+)
+
+stepit_add_plugin(stepit_plugin_builtin)
+target_sources(stepit_plugin_builtin
+    PRIVATE
+      src/stepit/builtin.cpp
+)
+target_link_libraries(stepit_plugin_builtin PUBLIC stepit_core)
+install(TARGETS stepit_plugin_builtin
+    EXPORT stepitTargets
+    LIBRARY DESTINATION ${STEPIT_LIB_DESTINATION}
+    ARCHIVE DESTINATION ${STEPIT_LIB_DESTINATION}
+)
+
+# Dynamically discover plugins from manifest files
+set(STEPIT_DISCOVERED_PLUGINS "")
+set(STEPIT_DISCOVERED_PLUGIN_DIRS "")
 # Add the default plugin search directory
 list(APPEND STEPIT_PLUGIN_DIRS "${CMAKE_CURRENT_LIST_DIR}/plugin")
 foreach (plugin_search_dir ${STEPIT_PLUGIN_DIRS})
@@ -100,69 +141,141 @@ foreach (plugin_search_dir ${STEPIT_PLUGIN_DIRS})
   endif ()
 
   # Search for plugins in the directory
-  file(GLOB discovered_plugins RELATIVE ${plugin_search_dir} ${plugin_search_dir}/*)
-  foreach (plugin ${discovered_plugins})
-    set(plugin_dir "${plugin_search_dir}/${plugin}")
+  file(GLOB discovered_plugin_dirs RELATIVE ${plugin_search_dir} ${plugin_search_dir}/*)
+  foreach (plugin_entry ${discovered_plugin_dirs})
+    set(plugin_dir "${plugin_search_dir}/${plugin_entry}")
     get_filename_component(plugin_dir "${plugin_dir}" REALPATH)
     if (
         IS_DIRECTORY ${plugin_dir}
-        AND EXISTS ${plugin_dir}/CMakeLists.txt
-        AND NOT EXISTS ${plugin_dir}/STEPIT_IGNORE
+        AND EXISTS ${plugin_dir}/stepit_plugin_manifest.cmake
         AND NOT ${plugin_dir} STREQUAL ${CMAKE_CURRENT_LIST_DIR}
     )
-      if (${plugin} IN_LIST STEPIT_ALL_PLUGINS)
-        message(WARNING "Duplicated plugin '${plugin}'.")
+      if (plugin_dir IN_LIST STEPIT_DISCOVERED_PLUGIN_DIRS)
         continue()
       endif ()
-      set(STEPIT_PLUGIN_${plugin}_DIR "${plugin_dir}")
-      list(APPEND STEPIT_ALL_PLUGINS ${plugin})
+      list(APPEND STEPIT_DISCOVERED_PLUGIN_DIRS "${plugin_dir}")
+
+      stepit_load_plugin_manifest(${plugin_dir} manifest_id)
+      stepit_get_plugin_manifest_property(${manifest_id} NAME plugin_name)
+      if (plugin_name IN_LIST STEPIT_DISCOVERED_PLUGINS)
+        stepit_get_plugin_property(${plugin_name} DIR existing_plugin_dir)
+        message(
+            FATAL_ERROR
+            "Duplicated plugin '${plugin_name}' declared in "
+            "'${existing_plugin_dir}' and '${plugin_dir}'."
+        )
+      endif ()
+      stepit_commit_plugin_manifest(${manifest_id})
+      list(APPEND STEPIT_DISCOVERED_PLUGINS ${plugin_name})
     endif ()
   endforeach ()
 endforeach ()
-list(SORT STEPIT_ALL_PLUGINS)
-message(STATUS "Discovered stepit plugins: ${STEPIT_ALL_PLUGINS}")
+list(SORT STEPIT_DISCOVERED_PLUGINS)
+message(STATUS "Discovered stepit plugins: ${STEPIT_DISCOVERED_PLUGINS}")
 
 if (NOT DEFINED STEPIT_BLACKLIST_PLUGINS)
   set(STEPIT_BLACKLIST_PLUGINS "")
 endif ()
+set(STEPIT_ENABLED_PLUGINS "${STEPIT_DISCOVERED_PLUGINS}")
 foreach (blacklisted_plugin ${STEPIT_BLACKLIST_PLUGINS})
-  list(REMOVE_ITEM STEPIT_ALL_PLUGINS ${blacklisted_plugin})
+  list(REMOVE_ITEM STEPIT_ENABLED_PLUGINS ${blacklisted_plugin})
 endforeach ()
 message(STATUS "Blacklisted plugins: ${STEPIT_BLACKLIST_PLUGINS}")
 
 if (NOT DEFINED STEPIT_WHITELIST_PLUGINS)
-  set(STEPIT_WHITELIST_PLUGINS "${STEPIT_ALL_PLUGINS}")
+  set(STEPIT_WHITELIST_PLUGINS "${STEPIT_ENABLED_PLUGINS}")
 endif ()
+message(STATUS "Requested stepit plugins: ${STEPIT_WHITELIST_PLUGINS}")
 
-# Build the whitelisted plugins
-while (STEPIT_WHITELIST_PLUGINS)
-  list(POP_FRONT STEPIT_WHITELIST_PLUGINS plugin)
-  if (NOT ${plugin} IN_LIST STEPIT_ALL_PLUGINS)
+# Resolve the requested plugin graph before building any plugin targets.
+set_property(GLOBAL PROPERTY STEPIT_RESOLVED_PLUGINS "")
+set_property(GLOBAL PROPERTY STEPIT_BUILDABLE_PLUGIN_ORDER "")
+set_property(GLOBAL PROPERTY STEPIT_BUILT_PLUGINS "")
+
+foreach (plugin ${STEPIT_WHITELIST_PLUGINS})
+  if (NOT ${plugin} IN_LIST STEPIT_DISCOVERED_PLUGINS)
     message(FATAL_ERROR "Plugin '${plugin}' is not supported.")
   endif ()
-  if (TARGET stepit_plugin_${plugin})
+  stepit_resolve_plugin(${plugin} "")
+endforeach ()
+
+get_property(STEPIT_RESOLVED_PLUGINS GLOBAL PROPERTY STEPIT_RESOLVED_PLUGINS)
+get_property(STEPIT_BUILDABLE_PLUGIN_ORDER GLOBAL PROPERTY STEPIT_BUILDABLE_PLUGIN_ORDER)
+message(STATUS "Resolved stepit plugin closure: ${STEPIT_RESOLVED_PLUGINS}")
+message(STATUS "Buildable stepit plugins: ${STEPIT_BUILDABLE_PLUGIN_ORDER}")
+
+# Build the buildable plugins in dependency order.
+foreach (plugin ${STEPIT_BUILDABLE_PLUGIN_ORDER})
+  stepit_get_plugin_property(${plugin} DEPENDS plugin_dependencies)
+  set(skip_plugin FALSE)
+  foreach (dependency ${plugin_dependencies})
+    stepit_get_plugin_property(${dependency} STATUS dependency_status)
+    if (NOT dependency_status STREQUAL "built")
+      stepit_mark_plugin_skipped_due_to_dependency(${plugin} ${dependency})
+      set(skip_plugin TRUE)
+      break()
+    endif ()
+  endforeach ()
+  if (skip_plugin)
     continue()
   endif ()
 
-  add_subdirectory(${STEPIT_PLUGIN_${plugin}_DIR} plugins/${plugin})
-  # If the plugin is successfully built, add it to the list of built plugins
-  if (TARGET stepit_plugin_${plugin})
-    set_property(GLOBAL APPEND PROPERTY STEPIT_BUILT_PLUGINS ${plugin})
-    # Resolve plugin dependencies
-    get_property(plugin_dependencies TARGET stepit_plugin_${plugin} PROPERTY STEPIT_PLUGIN_DEPENDENCIES)
-    foreach (dependency ${plugin_dependencies})
-      if (NOT dependency IN_LIST STEPIT_BUILT_PLUGINS AND
-          NOT dependency IN_LIST STEPIT_WHITELIST_PLUGINS)
-        list(PREPEND STEPIT_WHITELIST_PLUGINS ${dependency})
-      endif ()
-    endforeach ()
-  endif ()
-endwhile ()
+  stepit_get_plugin_property(${plugin} DIR plugin_dir)
+  add_subdirectory(${plugin_dir} plugins/${plugin})
 
-get_property(STEPIT_LIBRARIES GLOBAL PROPERTY STEPIT_LIBRARIES)
-get_property(STEPIT_EXECUTABLES GLOBAL PROPERTY STEPIT_EXECUTABLES)
-install(TARGETS ${STEPIT_LIBRARIES} ${STEPIT_EXECUTABLES}
-    RUNTIME DESTINATION ${STEPIT_BIN_DESTINATION}
+  if (TARGET stepit_plugin_${plugin})
+    stepit_set_plugin_property(${plugin} STATUS "built")
+    set_property(GLOBAL APPEND PROPERTY STEPIT_BUILT_PLUGINS ${plugin})
+  else ()
+    stepit_set_plugin_property(${plugin} STATUS "skipped")
+    stepit_set_plugin_property(
+        ${plugin}
+        REASON
+        "Plugin CMakeLists.txt did not create target 'stepit_plugin_${plugin}'. Check manifest requirements."
+    )
+    stepit_set_plugin_property(${plugin} CHAIN ${plugin})
+  endif ()
+endforeach ()
+
+stepit_print_plugin_report(${STEPIT_RESOLVED_PLUGINS})
+
+install(TARGETS stepit_core
+    EXPORT stepitTargets
     LIBRARY DESTINATION ${STEPIT_LIB_DESTINATION}
     ARCHIVE DESTINATION ${STEPIT_LIB_DESTINATION}
+    FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+)
+
+get_property(STEPIT_BUILT_PLUGINS GLOBAL PROPERTY STEPIT_BUILT_PLUGINS)
+if (NOT STEPIT_BUILT_PLUGINS)
+  set(STEPIT_BUILT_PLUGINS "")
+endif ()
+
+set(stepit_dependencies_file "${CMAKE_CURRENT_BINARY_DIR}/stepitDependencies.cmake")
+file(WRITE "${stepit_dependencies_file}" "set(STEPIT_BUILT_PLUGINS \"${STEPIT_BUILT_PLUGINS}\")\n")
+foreach (plugin ${STEPIT_BUILT_PLUGINS})
+  stepit_get_plugin_property(${plugin} DEPENDS plugin_dependencies)
+  file(APPEND "${stepit_dependencies_file}" "set(STEPIT_PLUGIN_DEPENDENCIES_${plugin} \"${plugin_dependencies}\")\n")
+endforeach ()
+
+install(EXPORT stepitTargets
+    FILE stepitTargets.cmake
+    NAMESPACE stepit::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/stepit
+)
+configure_package_config_file(
+    "${STEPIT_HOME_DIRECTORY}/cmake/stepitConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/stepitConfig.cmake"
+    INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/stepit"
+)
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/stepitConfigVersion.cmake"
+    VERSION 0.0.0
+    COMPATIBILITY SameMajorVersion
+)
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/stepitConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/stepitConfigVersion.cmake"
+    "${stepit_dependencies_file}"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/stepit"
 )

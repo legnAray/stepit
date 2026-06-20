@@ -5,6 +5,7 @@ namespace neuro_policy {
 NeuroPolicy::NeuroPolicy(const RobotSpec &robot_spec, const std::string &home_dir)
     : spec_(robot_spec, home_dir), config_(yml::loadFile(joinPaths(home_dir, "policy.yml"))) {
   config_["control_freq"].to(spec_.control_freq);
+  STEPIT_ASSERT(spec_.control_freq > 0, "Control frequency of policy '{}' must be positive.", spec_.policy_name);
   spec_.policy_config = config_;
   spec_.policy_name   = config_["name"].as<std::string>("");
   spec_.trusted       = config_["trusted"].as<bool>(false);

@@ -8,6 +8,7 @@ A typical plugin directory layout:
 
 ```text
 my_plugin/
+├── stepit_plugin_manifest.cmake
 ├── CMakeLists.txt
 ├── include/
 │   └── stepit/
@@ -19,16 +20,48 @@ my_plugin/
 
 ## 2. Dependencies & Build (`CMakeLists.txt`)
 
-Use the `stepit_add_plugin` macro to define your plugin.
+StepIt discovers plugins by the presence of `stepit_plugin_manifest.cmake`.
+Each manifest must declare the plugin name and plugin dependencies with `stepit_declare_plugin(...)`.
+
+Use plain CMake logic in the manifest:
 
 ```cmake
-cmake_minimum_required(VERSION 3.16)
+stepit_declare_plugin(NAME my_plugin DEPENDS field_base)
+find_package(Python3 QUIET COMPONENTS Interpreter Development)
+if (NOT Python3_FOUND)
+  stepit_plugin_mark_unbuildable("Missing Python3 interpreter or development files.")
+  return()
+endif ()
+```
+
+Then define a normal CMake library target and register it with StepIt.
+
+```cmake
+cmake_minimum_required(VERSION 3.23)
 project(stepit_plugin_example)
 
-stepit_add_plugin(stepit_plugin_example
-    SOURCES src/my_plugin.cpp
-    INCLUDES include
-    LINK_LIBS stepit_core
+stepit_add_plugin(stepit_plugin_example)
+
+target_sources(stepit_plugin_example
+    PRIVATE
+      src/my_plugin.cpp
+    PUBLIC
+      FILE_SET HEADERS
+      BASE_DIRS include
+      FILES
+        include/stepit/my_plugin/my_plugin.h
+)
+
+target_link_libraries(stepit_plugin_example PUBLIC
+    stepit_core
+    stepit_plugin_field_base
+)
+
+install(TARGETS stepit_plugin_example
+    EXPORT stepitTargets
+    LIBRARY DESTINATION ${STEPIT_LIB_DESTINATION}
+    ARCHIVE DESTINATION ${STEPIT_LIB_DESTINATION}
+    FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
 )
 ```
 
